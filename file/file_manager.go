@@ -91,28 +91,26 @@ func (m *Manager) Write(block *BlockID, page *Page) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	file, err := m.getFile(block.Filename())
+	f, err := m.getFile(block.Filename())
 	if err != nil {
 		return fmt.Errorf("cannot write block %s: %v", block.String(), err)
 	}
 
-	offset := int64(block.Number())*int64(m.blocksize)
-	if _,err := file.Seek(offset,io.SeekStart); err != nil {
+	offset := int64(block.Number()) * int64(m.blocksize)
+	if _, err := f.Seek(offset, io.SeekStart); err != nil {
 		return fmt.Errorf("cannot seek to offset %d: %v", offset, err)
 	}
 
-	//write to the disk
-	buffer := page.Contents()
-	n,err := file.Write(buffer)
+	buf := page.Contents()
+	n, err := f.Write(buf)
 	if err != nil {
-		if n!=len(buffer){
-			return fmt.Errorf("short write: expected %d bytes, wrote %d, %v", len(buffer), n, err)
-		}
-		return fmt.Errorf("cannot write data: %v",err)
+		return fmt.Errorf("cannot write data: %v", err)
+	}
+	if n != len(buf) {
+		return fmt.Errorf("short write: expected %d bytes, wrote %d", len(buf), n)
 	}
 
-	// flush data to the disk and cache
-	if err := file.Sync(); err != nil {
+	if err := f.Sync(); err != nil {
 		return fmt.Errorf("cannot flush file %s to disk: %v", block.Filename(), err)
 	}
 
@@ -174,8 +172,6 @@ func(m *Manager) Append(filename string) (BlockID, error){
 
 // length returns the number of blocks in the file.
 func (m *Manager) length(filename string) (int, error){
-	m.mu.Lock()
-	defer m.mu.Unlock()
 
 	file, err := m.getFile(filename)
 	if err != nil {
