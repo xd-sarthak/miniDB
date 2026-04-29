@@ -141,12 +141,12 @@ func(m *Manager) Append(filename string) (BlockID, error){
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	newBlockNumber,err := m.length(filename)
+	newBlockNumber,err := m.UnsafeLength(filename)
 	if err != nil {
 		return BlockID{},fmt.Errorf("cannot get length of %s: %v", filename, err)
 	}
 
-	block := BlockID{filename: filename, blockNum: newBlockNumber}
+	block := BlockID{File: filename, BlockNum: newBlockNumber}
 
 	f, err := m.getFile(filename)
 	if err != nil {
@@ -179,22 +179,6 @@ func(m *Manager) Append(filename string) (BlockID, error){
 	return block, nil
 }
 
-// length returns the number of blocks in the file.
-func (m *Manager) length(filename string) (int, error){
-
-	file, err := m.getFile(filename)
-	if err != nil {
-		return 0, fmt.Errorf("cannot get file %s: %v", filename, err)
-	}
-
-	info, err := file.Stat()
-	if err != nil {
-		return 0, fmt.Errorf("cannot stat file %s: %v", filename, err)
-	}
-
-	fileSizeInBytes := info.Size()
-	return int(fileSizeInBytes / int64(m.blocksize)), nil
-}
 
 func (m *Manager) IsNew() bool {
 	return m.isNew
@@ -234,4 +218,20 @@ func (m *Manager) GetBlocksWritten() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.blocksWritten
+}
+
+// UnsafeLength returns the number of blocks in the specified file. This method is not thread-safe.
+func (m *Manager) UnsafeLength(filename string) (int, error) {
+	f, err := m.getFile(filename)
+	if err != nil {
+		return 0, fmt.Errorf("cannot access %s: %v", filename, err)
+	}
+
+	fileInfo, err := f.Stat()
+	if err != nil {
+		return 0, fmt.Errorf("cannot stat %s: %v", filename, err)
+	}
+
+	fileSizeInBytes := fileInfo.Size()
+	return int(fileSizeInBytes / int64(m.blocksize)), nil
 }
