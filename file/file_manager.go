@@ -14,6 +14,8 @@ type Manager struct {
 	isNew         bool
 	mu            sync.Mutex //threadsafety
 	openFiles     map[string]*os.File //cache
+	blocksRead	  int
+	blocksWritten int
 }
 
 func NewManager(dbDirectory string, blocksize int) (*Manager,error) {
@@ -54,6 +56,8 @@ func NewManager(dbDirectory string, blocksize int) (*Manager,error) {
 		blocksize: blocksize,
 		isNew: isNew,
 		openFiles: make(map[string]*os.File),
+		blocksRead: 0,
+		blocksWritten: 0,
 	},nil
 }
 
@@ -82,6 +86,8 @@ func (m *Manager) Read(block *BlockID, page *Page) error {
 	if n != len(buffer) {
 		return fmt.Errorf("short read: expected %d bytes, got %d", len(buffer), n)
 	}
+
+	m.blocksRead++
 
 	return nil
 }
@@ -114,6 +120,7 @@ func (m *Manager) Write(block *BlockID, page *Page) error {
 		return fmt.Errorf("cannot flush file %s to disk: %v", block.Filename(), err)
 	}
 
+	m.blocksWritten++
 	return nil
 }
 
@@ -167,6 +174,8 @@ func(m *Manager) Append(filename string) (BlockID, error){
 		return BlockID{}, fmt.Errorf("cannot sync file %s: %v", filename, err)
 	}
 
+	m.blocksWritten++
+
 	return block, nil
 }
 
@@ -211,4 +220,18 @@ func (m *Manager) getFile(filename string) (*os.File, error) {
 
 	m.openFiles[filename] = f
 	return f, nil
+}
+
+// returns the number of blocks read from disk
+func (m *Manager) GetBlocksRead() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.blocksRead	
+}
+
+// returns the number of blocks written to disk
+func (m *Manager) GetBlocksWritten() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.blocksWritten
 }
