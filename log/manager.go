@@ -33,8 +33,8 @@ func NewManager(fileManager *file.Manager, logFile string) (*Manager, error){
 	// create a new empty page
 	logPage := file.NewPage(fileManager.BlockSize())
 
-	// get number of blocks in the log file (no need for mutex since only one goroutine can access it)
-	logSize, err := fileManager.UnsafeLength(logFile)
+	// get number of blocks in the log file
+	logSize, err := fileManager.Length(logFile)
 	if err != nil{
 		return nil, fmt.Errorf("failed to get log file length: %v", err)
 	}
@@ -103,6 +103,9 @@ func (m *Manager) Flush(lsn int) error {
 
 // returns as iterator for the log records in the log file
 func (m *Manager) Iterator() (*Iterator, error){
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if err := m.UnsafeFlush(); err != nil {
 		return nil, fmt.Errorf("failed to flush log page: %v", err)
 	}
@@ -128,6 +131,10 @@ func (m *Manager) Append(logRecord []byte) (int, error) {
 
 	recordSize:= len(logRecord)
 	bytesNeeded := recordSize + 4 // 4 bytes for the record size
+
+	if bytesNeeded > m.fileManager.BlockSize()-4 {
+		return 0, fmt.Errorf("log record too large to fit in a block")
+	}
 
 	if boundary - bytesNeeded < 4 {
 		// not enough space for the new record, need to flush and start a new block

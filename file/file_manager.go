@@ -42,7 +42,7 @@ func NewManager(dbDirectory string, blocksize int) (*Manager,error) {
 	for _,entry := range entries {
 		if !entry.IsDir(){ //if entry not a folder
 			name := entry.Name()
-			if len(name) >= 4 && name[:4] == "temp"{
+			if len(name) >= 5 && name[:5] == "temp_"{
 				tempFilePath := filepath.Join(dbDirectory,name)
 				if err := os.Remove(tempFilePath); err != nil {
 					return nil,fmt.Errorf("cannot remove file %s : %v",tempFilePath,err)
@@ -141,7 +141,7 @@ func(m *Manager) Append(filename string) (BlockID, error){
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	newBlockNumber,err := m.UnsafeLength(filename)
+	newBlockNumber,err := m.length(filename)
 	if err != nil {
 		return BlockID{},fmt.Errorf("cannot get length of %s: %v", filename, err)
 	}
@@ -220,8 +220,15 @@ func (m *Manager) GetBlocksWritten() int {
 	return m.blocksWritten
 }
 
-// UnsafeLength returns the number of blocks in the specified file. This method is not thread-safe.
-func (m *Manager) UnsafeLength(filename string) (int, error) {
+// Length returns the number of blocks in the specified file. This method is thread-safe.
+func (m *Manager) Length(filename string) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.length(filename)
+}
+
+// length returns the number of blocks in the specified file. This method is not thread-safe.
+func (m *Manager) length(filename string) (int, error) {
 	f, err := m.getFile(filename)
 	if err != nil {
 		return 0, fmt.Errorf("cannot access %s: %v", filename, err)

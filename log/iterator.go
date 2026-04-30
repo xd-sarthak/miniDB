@@ -51,7 +51,7 @@ func (it *Iterator) HasNext() bool {
 // Returns the next earliest log record.
 func (it *Iterator) Next() ([]byte, error) {
 	// Check if there are no more records left in the current block.
-	if it.currentPos == it.fileManager.BlockSize() {
+	for it.currentPos == it.fileManager.BlockSize() {
 		// Check if this is the first block.
 		if it.block.Number() == 0 {
 			return nil, errors.New("no more log records")
