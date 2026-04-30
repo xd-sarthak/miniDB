@@ -22,8 +22,8 @@ type Manager struct {
 	logFile       string
 	logPage       *file.Page
 	currentBlock  *file.BlockID
-	latestLSN     int
-	lastSavedLSN  int
+	latestLSN     int64
+	lastSavedLSN  int64
 	mu            sync.Mutex
 }
 
@@ -60,6 +60,7 @@ func NewManager(fileManager *file.Manager, logFile string) (*Manager, error){
 		logPage: logPage,
 		currentBlock: currentBlock,
 		latestLSN: 0,
+		lastSavedLSN: 0,
 	},nil
 }
 
@@ -91,7 +92,7 @@ func (m *Manager) UnsafeFlush() error {
 	return nil
 }
 
-func (m *Manager) Flush(lsn int) error {
+func (m *Manager) Flush(lsn int64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -122,7 +123,7 @@ func (m *Manager) Iterator() (*Iterator, error){
 
 // [<boundary (int)>............[][recordN (bytes)]...[record1 (bytes)]]
 
-func (m *Manager) Append(logRecord []byte) (int, error) {
+func (m *Manager) Append(logRecord []byte) (int64, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

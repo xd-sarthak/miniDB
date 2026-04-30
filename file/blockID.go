@@ -27,3 +27,8 @@ func (b *BlockID) Number() int {
 func (b *BlockID) String() string {
 	return fmt.Sprintf("[file %s, block %d]",b.File,b.BlockNum)
 }
+
+func (b *BlockID) Equals(other *BlockID) bool {
+	return b.File == other.File && b.BlockNum == other.BlockNum
+}
+
