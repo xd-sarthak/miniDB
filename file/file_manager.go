@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"errors"
 )
 
 type Manager struct {
@@ -80,16 +81,30 @@ func (m *Manager) Read(block *BlockID, page *Page) error {
 
 	buffer := page.Contents()
 	n,err := io.ReadFull(file,buffer)
+
+	if err == nil && n == len(buffer) {
+		m.blocksRead++
+		return nil
+	}
+
+	// handle eof case
+	if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
+		if n == 0 {
+			m.blocksRead++
+			return nil // EOF reached, but no data read, treat as empty block
+		}
+		// Partial read, fill the rest of the buffer with zeros
+		return fmt.Errorf("partial read: expected %d bytes, got %d", len(buffer), n)
+	}
+
+	// 	handle other errors
 	if err != nil {
-		return fmt.Errorf("cannot read data: %v",err)
-	}
-	if n != len(buffer) {
-		return fmt.Errorf("short read: expected %d bytes, got %d", len(buffer), n)
+		return fmt.Errorf("cannot read data: %v", err)
 	}
 
-	m.blocksRead++
+	// handle short read case
+	return fmt.Errorf("short read: expected %d bytes, got %d ", len(buffer),n)
 
-	return nil
 }
 
 // Write to the disk from the page (memory) to the file
