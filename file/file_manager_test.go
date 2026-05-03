@@ -181,4 +181,21 @@ func TestFileManager(t *testing.T) {
 
 		wg.Wait()
 	})
+
+	t.Run("ReadPastEOFZeroFillsPage", func(t *testing.T) {
+		assert := assert.New(t)
+
+		mgr, err := NewManager(tempDir, blockSize)
+		assert.NoErrorf(err, "Failed to create new manager: %v", err)
+
+		page := NewPage(blockSize)
+		err = page.SetString(0, "stale data")
+		assert.NoError(err)
+
+		missingBlock := NewBlockID("missing.db", 0)
+		err = mgr.Read(missingBlock, page)
+		assert.NoError(err)
+
+		assert.Equal(int32(0), page.GetInt(0), "EOF reads should zero-fill the page")
+	})
 }

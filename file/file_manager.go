@@ -80,6 +80,7 @@ func (m *Manager) Read(block *BlockID, page *Page) error {
 	}
 
 	buffer := page.Contents()
+	clear(buffer)
 	n,err := io.ReadFull(file,buffer)
 
 	if err == nil && n == len(buffer) {
@@ -93,8 +94,8 @@ func (m *Manager) Read(block *BlockID, page *Page) error {
 			m.blocksRead++
 			return nil // EOF reached, but no data read, treat as empty block
 		}
-		// Partial read, fill the rest of the buffer with zeros
-		return fmt.Errorf("partial read: expected %d bytes, got %d", len(buffer), n)
+		m.blocksRead++
+		return nil
 	}
 
 	// 	handle other errors

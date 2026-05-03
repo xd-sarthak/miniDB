@@ -62,7 +62,10 @@ func (b *Buffer) modifyingTxn() int64 {
 // if buffer was dirty then flush previous content to disk before reading new block
 func (b *Buffer) assignToBlock(block *file.BlockID) error {
 	if err := b.flush(); err != nil {
-		return fmt.Errorf("failed to flush buffer for block %s: %w", b.block.String(), err)
+		if b.block != nil {
+			return fmt.Errorf("failed to flush buffer for block %s: %w", b.block.String(), err)
+		}
+		return fmt.Errorf("failed to flush buffer before assigning block %s: %w", block.String(), err)
 	}
 	b.block = block
 	if err := b.fileManager.Read(block, b.contents); err != nil {
@@ -94,5 +97,8 @@ func (b *Buffer) pin() {
 
 // unpin decreases the buffer's pin count.
 func (b *Buffer) unpin() {
+	if b.pins == 0 {
+		panic("buffer unpin called with pin count 0")
+	}
 	b.pins--
 }

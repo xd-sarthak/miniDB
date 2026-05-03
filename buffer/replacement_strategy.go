@@ -25,7 +25,7 @@ func NewNaiveStrategy() *NaiveStrategy {
 }
 
 // initialize the strategy with the buffer pool
-func (ns *NaiveStrategy) intialize(buffers []*Buffer) {
+func (ns *NaiveStrategy) initialize(buffers []*Buffer) {
 	ns.mu.Lock()
 	defer ns.mu.Unlock()
 	ns.buffers = buffers

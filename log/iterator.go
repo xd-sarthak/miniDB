@@ -64,9 +64,11 @@ func (it *Iterator) Next() ([]byte, error) {
 		}
 	}
 
-	record := it.page.GetBytes(it.currentPos)
+	record, err := it.page.TryGetBytes(it.currentPos)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode log record at block %s offset %d: %w", it.block.String(), it.currentPos, err)
+	}
 	it.currentPos += 4 + len(record) // (size of record) + (length of record)
 	return record, nil
 }
-
 

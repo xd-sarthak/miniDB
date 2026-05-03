@@ -130,7 +130,7 @@ func TestBufferTimeout(t *testing.T) {
 
 	select {
 	case err := <-done:
-		assert.ErrorContains(t, err, "buffer abort exception")
+		assert.ErrorContains(t, err, "timed out waiting for buffer to become available")
 		assert.ErrorContains(t, err, "context deadline exceeded")
 	case <-time.After(12 * time.Second):
 		t.Fatal("timeout waiting for Pin to return error")
@@ -146,6 +146,20 @@ func TestBufferTimeout(t *testing.T) {
 
 	// Cleanup
 	env.bm.Unpin(buff2)
+}
+
+func TestUnpinPanicsWhenAlreadyUnpinned(t *testing.T) {
+	env := setupTest(t, 1)
+	defer env.cleanup()
+
+	blk := createBlock("testfile", 1)
+	buff, err := env.bm.Pin(&blk)
+	require.NoError(t, err)
+
+	env.bm.Unpin(buff)
+	require.PanicsWithValue(t, "buffer manager unpin called on an unpinned buffer", func() {
+		env.bm.Unpin(buff)
+	})
 }
 
 func TestConcurrentBufferAccess(t *testing.T) {

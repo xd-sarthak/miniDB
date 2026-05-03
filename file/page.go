@@ -3,6 +3,7 @@ package file
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"time"
 	"unicode/utf8"
 )
@@ -36,12 +37,30 @@ func (p *Page) SetInt(offset int, n int32) {
 
 // GetBytes retrieves a byte slice from the buffer starting at the specified offset.
 func (p *Page) GetBytes(offset int) []byte {
+	b, err := p.TryGetBytes(offset)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+// TryGetBytes retrieves a byte slice from the buffer starting at the specified offset.
+// It returns an error instead of panicking if the encoded length is malformed.
+func (p *Page) TryGetBytes(offset int) ([]byte, error) {
+	if offset < 0 || offset+4 > len(p.buffer) {
+		return nil, fmt.Errorf("offset %d out of bounds for page of size %d", offset, len(p.buffer))
+	}
+
 	length := int(binary.BigEndian.Uint32(p.buffer[offset:]))
 	start := offset + 4
 	end := start + length
+	if length < 0 || end < start || end > len(p.buffer) {
+		return nil, fmt.Errorf("invalid byte slice length %d at offset %d for page of size %d", length, offset, len(p.buffer))
+	}
+
 	b := make([]byte, length)
 	copy(b, p.buffer[start:end])
-	return b
+	return b, nil
 }
 
 // SetBytes writes a byte slice to the buffer starting at the specified offset.
@@ -54,7 +73,10 @@ func (p *Page) SetBytes(offset int, b []byte) {
 
 // GetString retrieves a string from the buffer at the specified offset.
 func (p *Page) GetString(offset int) (string, error) {
-	b := p.GetBytes(offset)
+	b, err := p.TryGetBytes(offset)
+	if err != nil {
+		return "", err
+	}
 	if !utf8.Valid(b) {
 		return "", errors.New("invalid UTF-8 encoding")
 	}

@@ -54,14 +54,40 @@ func NewManager(fileManager *file.Manager, logFile string) (*Manager, error){
 		}
 	}
 
+	latestLSN, err := recoverLatestLSN(fileManager, currentBlock)
+	if err != nil {
+		return nil, fmt.Errorf("failed to recover latest LSN: %v", err)
+	}
+
 	return &Manager{
 		fileManager: fileManager,
 		logFile: logFile,
 		logPage: logPage,
 		currentBlock: currentBlock,
-		latestLSN: 0,
-		lastSavedLSN: 0,
+		latestLSN: latestLSN,
+		lastSavedLSN: latestLSN,
 	},nil
+}
+
+func recoverLatestLSN(fileManager *file.Manager, currentBlock *file.BlockID) (int64, error) {
+	if currentBlock == nil {
+		return 0, nil
+	}
+
+	iterator, err := NewIterator(fileManager, currentBlock)
+	if err != nil {
+		return 0, err
+	}
+
+	var count int64
+	for iterator.HasNext() {
+		if _, err := iterator.Next(); err != nil {
+			return 0, err
+		}
+		count++
+	}
+
+	return count, nil
 }
 
 

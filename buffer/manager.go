@@ -74,6 +74,9 @@ func (m *Manager) Unpin(buff *Buffer){
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	if !buff.isPinned() {
+		panic("buffer manager unpin called on an unpinned buffer")
+	}
 	buff.unpin()
 	m.strategy.unpinBuffer(buff) // notify the strategy that a buffer has been unpinned
 	if !buff.isPinned() {
@@ -199,4 +202,3 @@ func (m *Manager) findExistingBuffer(block *file.BlockID) *Buffer {
 	}
 	return nil
 }
-

@@ -107,6 +107,18 @@ func TestPage(t *testing.T) {
 		assert.Error(err, "GetString should fail for invalid UTF-8 sequence")
 	})
 
+	t.Run("CorruptLengthPrefix", func(t *testing.T) {
+		assert := assert.New(t)
+		page := NewPage(16)
+		page.SetInt(0, 100)
+
+		_, err := page.TryGetBytes(0)
+		assert.Error(err, "TryGetBytes should reject out-of-bounds length prefixes")
+
+		_, err = page.GetString(0)
+		assert.Error(err, "GetString should surface corrupt length prefixes as an error")
+	})
+
 	t.Run("MaxLength", func(t *testing.T) {
 		assert := assert.New(t)
 		testCases := []struct {

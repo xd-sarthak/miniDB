@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/xd-sarthak/miniDB/file"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
 )
@@ -59,4 +60,28 @@ func TestLogMgr_AppendAndIteratorConsistency(t *testing.T) {
 	}
 
 	assert.Falsef(iterator.HasNext(), "Expected no more records, but iterator has more")
+}
+
+func TestLogMgr_RecoverLatestLSNOnRestart(t *testing.T) {
+	blockSize := 4096
+	fm, cleanup, err := createTempFileMgr(blockSize)
+	require.NoError(t, err)
+	defer cleanup()
+
+	logfile := "testlog"
+	lm, err := NewManager(fm, logfile)
+	require.NoError(t, err)
+
+	for i := 0; i < 5; i++ {
+		_, err := lm.Append([]byte(fmt.Sprintf("record %d", i)))
+		require.NoError(t, err)
+	}
+	require.NoError(t, lm.Flush(5))
+
+	restarted, err := NewManager(fm, logfile)
+	require.NoError(t, err)
+
+	lsn, err := restarted.Append([]byte("after restart"))
+	require.NoError(t, err)
+	assert.Equal(t, int64(6), lsn, "LSN should continue monotonically after restart")
 }
