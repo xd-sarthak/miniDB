@@ -19,20 +19,30 @@ type Manager struct {
 	numAvailable int
 	mu 		     sync.Mutex // thread safety
 	cond		*sync.Cond // thread sleeps when no buffers are available
+	strategy 	replacementStrategy
 }
 
-// creates a buffer manager having the specified number of buffer slots
+// NewManager creates a buffer manager having the specified number of buffer slots.
+// It depends on a file.Manager and log.Manager instance. Uses the Naive replacement strategy by default.
 func NewManager(fileManager *file.Manager, logManager *log.Manager, numBuffers int) *Manager {
-	m := &Manager{
-		bufferPool: make([]*Buffer,numBuffers),
-		numAvailable: numBuffers,
-	}
-	m.cond = sync.NewCond(&m.mu)
+	return NewManagerWithReplacementStrategy(fileManager, logManager, numBuffers, NewNaiveStrategy())
+}
 
-	for i := 0; i < numBuffers; i++ {
-		m.bufferPool[i] = NewBuffer(fileManager, logManager)
+// NewManagerWithReplacementStrategy creates a buffer manager with a given replacement strategy having the specified number of buffer slots.
+// It depends on a file.Manager and log.Manager instance.
+func NewManagerWithReplacementStrategy(fileManager *file.Manager, logManager *log.Manager, numBuffers int, strategy replacementStrategy) *Manager {
+	bm := &Manager{
+		bufferPool:   make([]*Buffer, numBuffers),
+		numAvailable: numBuffers,
+		strategy:     strategy,
 	}
-	return m
+	bm.cond = sync.NewCond(&bm.mu)
+	for i := 0; i < numBuffers; i++ {
+		bm.bufferPool[i] = NewBuffer(fileManager, logManager)
+	}
+	// initialize the strategy with the buffer pool
+	strategy.initialize(bm.bufferPool)
+	return bm
 }
 
 // Available returns the number of available (i.e., unpinned) buffers.
@@ -65,6 +75,7 @@ func (m *Manager) Unpin(buff *Buffer){
 	defer m.mu.Unlock()
 
 	buff.unpin()
+	m.strategy.unpinBuffer(buff) // notify the strategy that a buffer has been unpinned
 	if !buff.isPinned() {
 		m.numAvailable++
 		m.cond.Broadcast() // signal waiting threads that a buffer has become available
@@ -161,7 +172,7 @@ func (m *Manager) Pin(block *file.BlockID) (*Buffer, error) {
 func (m *Manager) tryToPin(block *file.BlockID) (*Buffer, error) {
 	buffer := m.findExistingBuffer(block)
 	if buffer == nil {
-		buffer = m.chooseUnpinnedBuffer()
+		buffer = m.strategy.chooseUnpinned()
 		if buffer == nil {
 			return nil, nil
 		}
@@ -173,6 +184,7 @@ func (m *Manager) tryToPin(block *file.BlockID) (*Buffer, error) {
 		m.numAvailable--
 	}
 	buffer.pin()
+	m.strategy.pinBuffer(buffer) // notify the strategy that a buffer has been pinned
 	return buffer, nil
 }
 
@@ -188,12 +200,3 @@ func (m *Manager) findExistingBuffer(block *file.BlockID) *Buffer {
 	return nil
 }
 
-// chooseUnpinnedBuffer returns an unpinned buffer from the pool or nil if none are available.
-func (m *Manager) chooseUnpinnedBuffer() *Buffer {
-	for _, buffer := range m.bufferPool {
-		if !buffer.isPinned() {
-			return buffer
-		}
-	}
-	return nil
-}
