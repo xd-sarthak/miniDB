@@ -14,6 +14,8 @@ import (
 const maxWaitTime = 10 * time.Second
 
 // Manager the pinning and unpinning of buffers to blocks
+// It also handles flushing of dirty buffers
+// It uses a replacement strategy to choose which unpinned buffer to use when pinning a new block
 type Manager struct {
 	bufferPool	[]*Buffer
 	numAvailable int
@@ -116,55 +118,60 @@ func (m *Manager) Pin(block *file.BlockID) (*Buffer, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), maxWaitTime)
 	defer cancel()
 
-	var buff *Buffer
-	var err error
+	// this runs after context expires
+	stop := context.AfterFunc(ctx, func() {
+		// we acquire cond.L to make sure broadcast doesnt happen before call to wait -> Deadlock
 
-	waitOnCond := func() error {
-		// set up a goroutine to wait for the condition to be signaled or for the context to timeout
-		done := make(chan struct{})
-		defer close(done)
+		// Scenario Without Locking in AfterFunc:
+		//
+		// 1. Goroutine A (Waiter) Starts:
+		// - Acquires cond.L.Lock().
+		// - Checks conditionMet(), which returns false.
+		// - Enters the loop and is about to call cond.Wait().
+		//
+		// 2. Context Cancellation Occurs:
+		// - The AfterFunc is triggered.
+		// - Without locking cond.L, it calls cond.Broadcast() immediately.
+		//
+		// 3. Goroutine A Calls cond.Wait():
+		// - cond.Wait() releases the lock (which it already holds), but since it was not held during Broadcast(), there's no synchronization.
+		// - Goroutine A begins waiting.
+		//
+		// 4. Missed Signal:
+		// - Since cond.Broadcast() was called before Goroutine A was actually waiting, Goroutine A misses the signal.
+		// - No further broadcasts are scheduled.
+		// - Goroutine A remains blocked indefinitely, leading to a deadlock.
+		m.cond.L.Lock()
+		m.cond.Broadcast()
+		m.cond.L.Unlock()
+	})
 
-		go func() {
-			// mimicking a 10s timeout for waiting for a buffer to become available
-			select {
-				case <-ctx.Done():
-					m.mu.Lock()
-					// wake up the waiting goroutine
-					m.cond.Broadcast()
-					m.mu.Unlock()
-				case <-done:
-					// the pinning operation completed successfully, so we can stop waiting
-
-			}
-		}()
+	// calling the returned stop function stops the association of ctx with func
+	defer stop()
 
 		for {
-			if buff, err = m.tryToPin(block); err != nil {
-				return err
-			}
-			if buff != nil {
+			if buff, err := m.tryToPin(block); err != nil {
+				return nil,err
+			} else if buff != nil {
 				// successfully pinned the buffer, so we can stop waiting
-				break
+				return buff, nil
 			}
 			m.cond.Wait()
 
 			// check if the context has timed out
 			if ctx.Err() != nil {
-				return ctx.Err()
+				// check if the wait timed out, if yes, retur a buffer abort exception
+				// client should abort and retry the transaction
+				if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+					return nil, fmt.Errorf("timed out waiting for buffer to become available: %w", ctx.Err())
+				}
+				// otherwise, return the error that occurred while waiting
+				return nil, fmt.Errorf("error while waiting for buffer to become available: %v", ctx.Err())
 			}
 		}
 
-		return nil
 	}
 
-	if err := waitOnCond(); err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, fmt.Errorf("timed out waiting for buffer to become available: %w", err)
-		}
-		return nil, fmt.Errorf("error while waiting for buffer to become available: %v", err)
-	}
-	return buff, nil
-}
 
 
 // tryToPin tries to pin a buffer to the specified block.
