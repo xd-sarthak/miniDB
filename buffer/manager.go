@@ -56,7 +56,7 @@ func (m *Manager) Available() int {
 
 
 // flushes the dirty buffers modified by the specified transaction to disk
-func (m *Manager) FlushAll(txnNum int64) error {
+func (m *Manager) FlushAll(txnNum int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

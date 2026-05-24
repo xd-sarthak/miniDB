@@ -28,13 +28,13 @@ func TestPage(t *testing.T) {
 		page := NewPage(100)
 		testCases := []struct {
 			offset int
-			value  int32
+			value  int
 		}{
 			{0, 42},
 			{4, -123},
 			{8, 0},
-			{12, 2147483647},  // max int32
-			{16, -2147483648}, // min int32
+			{12, 2147483647},  // max int32 value
+			{16, -2147483648}, // min int32 value
 		}
 
 		for _, tc := range testCases {
@@ -143,10 +143,10 @@ func TestPage(t *testing.T) {
 		page := NewPage(blockSize)
 
 		// Test writing at the end of buffer
-		lastValidOffset := blockSize - 4 // space for one int32
+		lastValidOffset := blockSize - 4 // space for one int
 		page.SetInt(lastValidOffset, 42)
 		got := page.GetInt(lastValidOffset)
-		assert.Equal(int32(42), got, "Value at buffer boundary should match")
+		assert.Equal(42, got, "Value at buffer boundary should match")
 	})
 
 	t.Run("LargeData", func(t *testing.T) {

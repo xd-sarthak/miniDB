@@ -153,46 +153,46 @@ func (m *Manager) Write(block *BlockID, page *Page) error {
         ↓
 	File now has N+1 blocks
 */
-func(m *Manager) Append(filename string) (BlockID, error){
+func(m *Manager) Append(filename string) (*BlockID, error){
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	newBlockNumber,err := m.length(filename)
 	if err != nil {
-		return BlockID{},fmt.Errorf("cannot get length of %s: %v", filename, err)
+		return &BlockID{},fmt.Errorf("cannot get length of %s: %v", filename, err)
 	}
 
 	block := BlockID{File: filename, BlockNum: newBlockNumber}
 
 	f, err := m.getFile(filename)
 	if err != nil {
-		return BlockID{},fmt.Errorf("cannot append block %s: %v", block.String(), err)
+		return &BlockID{},fmt.Errorf("cannot append block %s: %v", block.String(), err)
 	}
 
 	offset := int64(block.Number()) * int64(m.blocksize)
 	if _,err := f.Seek(offset,io.SeekStart); err != nil {
-		return BlockID{},fmt.Errorf("cannot seek to offset %d: %v", offset, err)
+		return &BlockID{},fmt.Errorf("cannot seek to offset %d: %v", offset, err)
 	}
 
 	b := make([]byte,m.blocksize)
 	n,err := f.Write(b)
 
 	if err != nil {
-		return BlockID{},fmt.Errorf("cannot write data: %v", err)
+		return &BlockID{},fmt.Errorf("cannot write data: %v", err)
 	}
 
 	if n != len(b) {
-		return BlockID{}, fmt.Errorf("short write: expected %d bytes, wrote %d", len(b), n)
+		return &BlockID{}, fmt.Errorf("short write: expected %d bytes, wrote %d", len(b), n)
 	}
 
 	// Ensure the data is flushed to disk.
 	if err := f.Sync(); err != nil {
-		return BlockID{}, fmt.Errorf("cannot sync file %s: %v", filename, err)
+		return &BlockID{}, fmt.Errorf("cannot sync file %s: %v", filename, err)
 	}
 
 	m.blocksWritten++
 
-	return block, nil
+	return &block, nil
 }
 
 

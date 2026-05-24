@@ -26,12 +26,12 @@ func NewPageFromBytes(bytes []byte) *Page {
 }
 
 // GetInt retrieves a 32-bit integer from the buffer at the specified offset.
-func (p *Page) GetInt(offset int) int32 {
-	return int32(binary.BigEndian.Uint32(p.buffer[offset:]))
+func (p *Page) GetInt(offset int) int {
+	return int(int32(binary.BigEndian.Uint32(p.buffer[offset:])))
 }
 
 // SetInt writes a 32-bit integer to the buffer at the specified offset.
-func (p *Page) SetInt(offset int, n int32) {
+func (p *Page) SetInt(offset int, n int) {
 	binary.BigEndian.PutUint32(p.buffer[offset:], uint32(n))
 }
 

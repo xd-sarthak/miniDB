@@ -40,12 +40,12 @@ func TestFileManager(t *testing.T) {
 		assert.NoErrorf(err, "Error while putting string into page: %v", err)
 
 		// Write the page to the block
-		err = mgr.Write(&block, page)
+		err = mgr.Write(block, page)
 		assert.NoErrorf(err, "Failed to write block: %v", err)
 
 		// Read the page back
 		readPage := NewPage(blockSize)
-		err = mgr.Read(&block, readPage)
+		err = mgr.Read(block, readPage)
 		assert.NoErrorf(err, "Failed to read block: %v", err)
 
 		// Verify the contents
@@ -69,7 +69,7 @@ func TestFileManager(t *testing.T) {
 			block, err := mgr.Append(filename)
 			assert.NoErrorf(err, "Failed to append block %d: %v", i, err)
 
-			blocks[i] = block
+			blocks[i] = *block
 
 			assert.Equalf(block.Number(), i, "Expected block number %d, got %d", i, block.Number())
 		}
@@ -165,12 +165,12 @@ func TestFileManager(t *testing.T) {
 					assert.NoError(err)
 
 					// Write data
-					err := mgr.Write(&block, page)
+					err := mgr.Write(block, page)
 					assert.NoErrorf(err, "Goroutine %d write failed: %v", id, err)
 
 					// Read data back
 					readPage := NewPage(blockSize)
-					err = mgr.Read(&block, readPage)
+					err = mgr.Read(block, readPage)
 					assert.NoErrorf(err, "Goroutine %d read failed: %v", id, err)
 					readData, err := readPage.GetString(0)
 					assert.NoError(err)
@@ -196,6 +196,6 @@ func TestFileManager(t *testing.T) {
 		err = mgr.Read(missingBlock, page)
 		assert.NoError(err)
 
-		assert.Equal(int32(0), page.GetInt(0), "EOF reads should zero-fill the page")
+		assert.Equal(0, page.GetInt(0), "EOF reads should zero-fill the page")
 	})
 }

@@ -22,8 +22,8 @@ type Manager struct {
 	logFile       string
 	logPage       *file.Page
 	currentBlock  *file.BlockID
-	latestLSN     int64
-	lastSavedLSN  int64
+	latestLSN     int
+	lastSavedLSN  int
 	mu            sync.Mutex
 }
 
@@ -69,7 +69,7 @@ func NewManager(fileManager *file.Manager, logFile string) (*Manager, error){
 	},nil
 }
 
-func recoverLatestLSN(fileManager *file.Manager, currentBlock *file.BlockID) (int64, error) {
+func recoverLatestLSN(fileManager *file.Manager, currentBlock *file.BlockID) (int, error) {
 	if currentBlock == nil {
 		return 0, nil
 	}
@@ -79,7 +79,7 @@ func recoverLatestLSN(fileManager *file.Manager, currentBlock *file.BlockID) (in
 		return 0, err
 	}
 
-	var count int64
+	var count int
 	for iterator.HasNext() {
 		if _, err := iterator.Next(); err != nil {
 			return 0, err
@@ -102,11 +102,11 @@ func appendNewBlock(fileManager *file.Manager, logFile string, logPage *file.Pag
 	// set the initial boundary for the page, flush the page we reset its contents
 	// we reset the boundary 
 	// intial value of boundary is the blockSize
-	logPage.SetInt(0,int32(fileManager.BlockSize()))
-	if err := fileManager.Write(&block,logPage); err != nil {
+	logPage.SetInt(0,fileManager.BlockSize())
+	if err := fileManager.Write(block,logPage); err != nil {
 		return nil,fmt.Errorf("failed to write new block: %v", err)
 	}
-	return &block,nil
+	return block,nil
 }
 
 // UnsafeFlush writes the buffer to the log file. This method is not thread-safe.
@@ -118,7 +118,7 @@ func (m *Manager) UnsafeFlush() error {
 	return nil
 }
 
-func (m *Manager) Flush(lsn int64) error {
+func (m *Manager) Flush(lsn int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -149,7 +149,7 @@ func (m *Manager) Iterator() (*Iterator, error){
 
 // [<boundary (int)>............[][recordN (bytes)]...[record1 (bytes)]]
 
-func (m *Manager) Append(logRecord []byte) (int64, error) {
+func (m *Manager) Append(logRecord []byte) (int, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -183,7 +183,7 @@ func (m *Manager) Append(logRecord []byte) (int64, error) {
 	//write the record
 	m.logPage.SetBytes(recordPosition, logRecord)
 	//update the boundary
-	m.logPage.SetInt(0, int32(recordPosition))
+	m.logPage.SetInt(0, int(recordPosition))
 	
 	m.latestLSN++
 	return m.latestLSN, nil

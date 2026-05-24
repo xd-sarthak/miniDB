@@ -14,8 +14,8 @@ type Buffer struct {
 	contents      *file.Page
 	block         *file.BlockID
 	pins           int
-	txnNum         int64 //transaction number
-	lsn            int64
+	txnNum         int //transaction number
+	lsn            int
 }
 
 func NewBuffer(fileManager *file.Manager, logManager *log.Manager) *Buffer {
@@ -39,7 +39,7 @@ func (b *Buffer) Block() *file.BlockID {
 	return b.block
 }
 
-func (b *Buffer) SetModified(txnNum, lsn int64) {
+func (b *Buffer) SetModified(txnNum, lsn int) {
 	b.txnNum = txnNum
 
 	// If LSN is smaller than 0, it indicates that a log record was not generated for this update.
@@ -53,7 +53,7 @@ func (b *Buffer) isPinned() bool {
 	return b.pins > 0
 }
 
-func (b *Buffer) modifyingTxn() int64 {
+func (b *Buffer) modifyingTxn() int {
 	return b.txnNum
 }
 

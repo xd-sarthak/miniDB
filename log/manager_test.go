@@ -83,5 +83,5 @@ func TestLogMgr_RecoverLatestLSNOnRestart(t *testing.T) {
 
 	lsn, err := restarted.Append([]byte("after restart"))
 	require.NoError(t, err)
-	assert.Equal(t, int64(6), lsn, "LSN should continue monotonically after restart")
+	assert.Equal(t, 6, lsn, "LSN should continue monotonically after restart")
 }
