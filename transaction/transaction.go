@@ -5,6 +5,7 @@ import (
 	"github.com/xd-sarthak/miniDB/buffer"
 	"github.com/xd-sarthak/miniDB/file"
 	"github.com/xd-sarthak/miniDB/log"
+	"github.com/xd-sarthak/miniDB/transaction/concurrency"
 	"math"
 )
 
@@ -28,7 +29,7 @@ func NewTransaction(fileManager *file.Manager, logManager *log.Manager, bufferMa
 		fileManager:        fileManager,
 		bufferManager:      bufferManager,
 		txNum:              0,
-		concurrencyManager: concurrency.NewManager(),
+		concurrencyManager: concurrency.NewManager(concurrency.NewLockTable()),
 		myBuffers:          NewBufferList(bufferManager),
 	}
 	tx.txNum = tx.nextTxNumber()
