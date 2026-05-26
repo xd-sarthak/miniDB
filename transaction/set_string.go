@@ -43,13 +43,13 @@ func NewSetStringRecord(page *file.Page) (*SetStringRecord, error) {
 	return &SetStringRecord{txNum: txNum, offset: offset, value: value, block: block}, nil
 }
 
-// Op returns the type of the log record.
-func (r *SetStringRecord) Op() LogRecordType {
+// OP returns the type of the log record.
+func (r *SetStringRecord) OP() LogRecordType {
 	return SetString
 }
 
-// TxNumber returns the transaction number stored in the log record.
-func (r *SetStringRecord) TxNumber() int {
+// TxNum returns the transaction number stored in the log record.
+func (r *SetStringRecord) TxNum() int {
 	return r.txNum
 }
 

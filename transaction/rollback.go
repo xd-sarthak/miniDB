@@ -22,13 +22,13 @@ func NewRollbackRecord(page *file.Page) (*RollbackRecord, error){
 	}, nil
 }
 
-// Op returns the type of the log record.
-func (r *RollbackRecord) Op() LogRecordType {
+// OP returns the type of the log record.
+func (r *RollbackRecord) OP() LogRecordType {
 	return Rollback
 }
 
-// TxNumber returns the transaction number stored in the log record.
-func (r *RollbackRecord) TxNumber() int {
+// TxNum returns the transaction number stored in the log record.
+func (r *RollbackRecord) TxNum() int {
 	return r.txNum
 }
 

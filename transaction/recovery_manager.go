@@ -51,7 +51,7 @@ func (rm *RecoveryManager) Rollback() error {
 	if err := rm.bufferManager.FlushAll(rm.txNum); err != nil {
 		return err
 	}
-	lsn,err := WriteCheckpointToLog(rm.logManager)
+	lsn, err := WriteRollbackToLog(rm.logManager, rm.txNum)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (rm *RecoveryManager) doRecover() error {
 	for iter.HasNext() {
 		bytes, err := iter.Next()
 		if err != nil {
-			return nil
+			return err
 		}
 
 		logRecord, err := CreateLogRecord(bytes)

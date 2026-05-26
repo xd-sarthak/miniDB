@@ -22,13 +22,13 @@ func NewCommitRecord(page *file.Page) (*CommitRecord, error) {
 	}, nil
 }
 
-// Op returns the type of the log record.
-func (r *CommitRecord) Op() LogRecordType {
+// OP returns the type of the log record.
+func (r *CommitRecord) OP() LogRecordType {
 	return Commit
 }
 
-// TxNumber returns the transaction number stored in the log record.
-func (r *CommitRecord) TxNumber() int {
+// TxNum returns the transaction number stored in the log record.
+func (r *CommitRecord) TxNum() int {
 	return r.txNum
 }
 

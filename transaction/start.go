@@ -23,13 +23,13 @@ func NewStartRecord(page *file.Page) (*StartRecord, error) {
 	}, nil
 }
 
-// Op returns the type of the log record, which is Start.
-func (sr *StartRecord) Op() LogRecordType {
+// OP returns the type of the log record, which is Start.
+func (sr *StartRecord) OP() LogRecordType {
 	return Start
 }
 
-// TxnNumber returns the transaction number associated with this StartRecord.
-func (sr *StartRecord) TxnNumber() int {
+// TxNum returns the transaction number associated with this StartRecord.
+func (sr *StartRecord) TxNum() int {
 	return sr.txnNum
 }
 

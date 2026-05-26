@@ -45,13 +45,13 @@ func NewSetIntRecord(page *file.Page) (*SetIntRecord, error) {
 }
 
 
-// Op returns the type of the log record.
-func (r *SetIntRecord) Op() LogRecordType {
+// OP returns the type of the log record.
+func (r *SetIntRecord) OP() LogRecordType {
 	return SetInt
 }
 
-// TxNumber returns the transaction number stored in the log record.
-func (r *SetIntRecord) TxNumber() int {
+// TxNum returns the transaction number stored in the log record.
+func (r *SetIntRecord) TxNum() int {
 	return r.txNum
 }
 

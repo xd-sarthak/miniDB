@@ -18,8 +18,8 @@ func (cr *CheckpointRecord) OP() LogRecordType {
 	return Checkpoint
 }
 
-// TxnNum returns -1 for checkpoint records, as they do not have an associated transaction number.
-func (cr *CheckpointRecord) TxnNum() int {
+// TxNum returns -1 for checkpoint records, as they do not have an associated transaction number.
+func (cr *CheckpointRecord) TxNum() int {
 	return -1 // Checkpoint records do not have a transaction number
 }
 
