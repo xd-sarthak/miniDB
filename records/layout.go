@@ -97,12 +97,9 @@ func (l *Layout) Schema() *Schema {
 	return l.schema
 }
 
-// Offset returns the offset of the specified field within a record based on the layout.
-func (l *Layout) Offset(fieldName string) (int, bool) {
-	offset, ok := l.offsets[fieldName]
-	return offset, ok
+func (l *Layout) Offset(fieldName string) int {
+	return l.offsets[fieldName]
 }
-
 // SlotSize returns the size of a record slot in bytes.
 func (l *Layout) SlotSize() int {
 	return l.slotSize

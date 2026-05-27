@@ -218,6 +218,19 @@ func (tx *Transaction) SetShort(block *file.BlockID, offset int, val int16, logI
 	return nil
 }
 
+// GetShort returns the int16 value stored at the specified offset of the specified block.
+// The method first obtains an SLock on the block, then it calls the buffer to retrieve the value.
+func (tx *Transaction) GetShort(block *file.BlockID, offset int) (int16, error) {
+	if err := tx.concurrencyManager.SLock(block); err != nil {
+		return 0, err
+	}
+	buff := tx.myBuffers.GetBuffer(block)
+	if buff == nil {
+		return 0, fmt.Errorf("buffer for block %s not found", block)
+	}
+	return buff.Contents().GetShort(offset), nil
+}
+
 // SetBool stores a boolean value at the specified offset of the specified block.
 // The method first obtains an XLock on the block, writes an update log record, and then updates the buffer.
 func (tx *Transaction) SetBool(block *file.BlockID, offset int, val bool, logIt bool) error {
@@ -241,6 +254,19 @@ func (tx *Transaction) SetBool(block *file.BlockID, offset int, val bool, logIt 
 	page.SetBool(offset, val)
 	buff.SetModified(tx.txNum, lsn)
 	return nil
+}
+
+// GetBool returns the boolean value stored at the specified offset of the specified block.
+// The method first obtains an SLock on the block, then it calls the buffer to retrieve the value.
+func (tx *Transaction) GetBool(block *file.BlockID, offset int) (bool, error) {
+	if err := tx.concurrencyManager.SLock(block); err != nil {
+		return false, err
+	}
+	buff := tx.myBuffers.GetBuffer(block)
+	if buff == nil {
+		return false, fmt.Errorf("buffer for block %s not found", block)
+	}
+	return buff.Contents().GetBool(offset), nil
 }
 
 // SetDate stores a time.Time value at the specified offset of the specified block.
@@ -268,6 +294,19 @@ func (tx *Transaction) SetDate(block *file.BlockID, offset int, val time.Time, l
 	return nil
 }
 
+// GetDate returns the time.Time value stored at the specified offset of the specified block.
+// The method first obtains an SLock on the block, then it calls the buffer to retrieve the value.
+func (tx *Transaction) GetDate(block *file.BlockID, offset int) (time.Time, error) {
+	if err := tx.concurrencyManager.SLock(block); err != nil {
+		return time.Time{}, err
+	}
+	buff := tx.myBuffers.GetBuffer(block)
+	if buff == nil {
+		return time.Time{}, fmt.Errorf("buffer for block %s not found", block)
+	}
+	return buff.Contents().GetDate(offset), nil
+}
+
 // SetLong stores an int64 value at the specified offset of the specified block.
 // The method first obtains an XLock on the block, writes an update log record, and then updates the buffer.
 func (tx *Transaction) SetLong(block *file.BlockID, offset int, val int64, logIt bool) error {
@@ -291,6 +330,19 @@ func (tx *Transaction) SetLong(block *file.BlockID, offset int, val int64, logIt
 	page.SetLong(offset, val)
 	buff.SetModified(tx.txNum, lsn)
 	return nil
+}
+
+// GetLong returns the int64 value stored at the specified offset of the specified block.
+// The method first obtains an SLock on the block, then it calls the buffer to retrieve the value.
+func (tx *Transaction) GetLong(block *file.BlockID, offset int) (int64, error) {
+	if err := tx.concurrencyManager.SLock(block); err != nil {
+		return 0, err
+	}
+	buff := tx.myBuffers.GetBuffer(block)
+	if buff == nil {
+		return 0, fmt.Errorf("buffer for block %s not found", block)
+	}
+	return buff.Contents().GetLong(offset), nil
 }
 
 // Size returns the number of blocks in the specified file.
