@@ -67,6 +67,9 @@ type LogRecord interface {
 
 	// Undo undoes the operation encoded by the log record, if applicable.
 	Undo(tx *Transaction) error
+
+	// String returns a string representation of the log record for debugging purposes.
+	String() string
 }
 
 // CreateLogRecord interprets the bytes to create the appropriate LogRecord based on the log record type code.
