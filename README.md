@@ -5,8 +5,8 @@ This project is built as a personal exercise as I work my way through database i
 The database implements the following features:
 - [x] Disk and File Management
 - [x] Memory Management
-- [ ] Transaction Management
-- [ ] Record Management
+- [x] Transaction Management
+- [x] Record Management
 - [ ] Metadata Management
 - [ ] Query Processing
 - [ ] Query Parsing

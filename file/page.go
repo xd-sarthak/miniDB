@@ -51,7 +51,7 @@ func (p *Page) TryGetBytes(offset int) ([]byte, error) {
 		return nil, fmt.Errorf("offset %d out of bounds for page of size %d", offset, len(p.buffer))
 	}
 
-	length := int(binary.BigEndian.Uint32(p.buffer[offset:]))
+	length := p.GetInt(offset)
 	start := offset + 4
 	end := start + length
 	if length < 0 || end < start || end > len(p.buffer) {
@@ -66,7 +66,7 @@ func (p *Page) TryGetBytes(offset int) ([]byte, error) {
 // SetBytes writes a byte slice to the buffer starting at the specified offset.
 func (p *Page) SetBytes(offset int, b []byte) {
 	length := len(b)
-	binary.BigEndian.PutUint32(p.buffer[offset:], uint32(length))
+	p.SetInt(offset, length)
 	start := offset + 4
 	copy(p.buffer[start:], b)
 }
