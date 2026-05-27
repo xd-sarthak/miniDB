@@ -14,6 +14,10 @@ const (
 	Rollback
 	SetInt
 	SetString
+	SetBool
+	SetDate
+	SetLong
+	SetShort
 )
 
 func (lrt LogRecordType) String() string {

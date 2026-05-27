@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"time"
 	"github.com/xd-sarthak/miniDB/buffer"
 	"github.com/xd-sarthak/miniDB/log"
 )
@@ -92,6 +93,36 @@ func (rm *RecoveryManager) SetString(buffer *buffer.Buffer, offset int, newVal s
 	return WriteSetStringToLog(rm.logManager, rm.txNum, block, offset, oldVal)
 }
 
+// SetBool writes a SetBool record to the log and returns its lsn.
+func (rm *RecoveryManager) SetBool(buffer *buffer.Buffer, offset int, newVal bool) (int, error) {
+	oldVal := buffer.Contents().GetBool(offset)
+	block := buffer.Block()
+	return WriteSetBoolToLog(rm.logManager, rm.txNum, block, offset, oldVal)
+}
+
+// SetShort writes a SetShort record to the log and returns its lsn.
+func (rm *RecoveryManager) SetShort(buffer *buffer.Buffer, offset int, newVal int16) (int, error) {
+	oldVal := buffer.Contents().GetShort(offset)
+	block := buffer.Block()
+	return WriteSetShortToLog(rm.logManager, rm.txNum, block, offset, oldVal)
+}
+
+// SetDate writes a SetDate record to the log and returns its lsn.
+func (rm *RecoveryManager) SetDate(buffer *buffer.Buffer, offset int, newVal time.Time) (int, error) {
+	oldVal := buffer.Contents().GetDate(offset)
+	block := buffer.Block()
+	return WriteSetDateToLog(rm.logManager, rm.txNum, block, offset, oldVal)
+}
+
+
+// SetLong writes a SetLong record to the log and returns its lsn.
+func (rm *RecoveryManager) SetLong(buffer *buffer.Buffer, offset int, newVal int64) (int, error) {
+	oldVal := buffer.Contents().GetLong(offset)
+	block := buffer.Block()
+	return WriteSetLongToLog(rm.logManager, rm.txNum, block, offset, oldVal)
+}
+
+
 // doRollback rolls back the transaction,
 // by iterating through the log records until it finds the transaction's Start record,
 // calling Undo() for each of the transaction's log records.
@@ -167,8 +198,6 @@ func (rm *RecoveryManager) doRecover() error {
 	}
 	return nil
 }
-
-
 
 // Generic contains function for slices of any comparable type
 func contains[T comparable](slice []T, element T) bool {

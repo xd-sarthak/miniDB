@@ -136,3 +136,13 @@ func MaxLength(strlen int) int {
 func (p *Page) Contents() []byte {
 	return p.buffer
 }
+
+// GetLong retrieves a 64-bit integer from the buffer at the specified offset.
+func (p *Page) GetLong(offset int) int64 {
+	return int64(binary.BigEndian.Uint64(p.buffer[offset:]))
+}
+
+// SetLong writes a 64-bit integer to the buffer at the specified offset.
+func (p *Page) SetLong(offset int, n int64) {
+	binary.BigEndian.PutUint64(p.buffer[offset:], uint64(n))
+}

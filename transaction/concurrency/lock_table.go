@@ -6,6 +6,7 @@ import (
 	"github.com/xd-sarthak/miniDB/file"
 	"sync"
 	"fmt"
+	"time"
 )
 
 // LockTable provides methods to lock and unlock block
@@ -16,7 +17,8 @@ import (
 // then all transactions are removed from the wait list and rescheduled.
 // If one of those transactions discovers that the lock it is waiting for is still locked,
 // it will place itself back on the wait list. 
-const maxWaitTime = 10000 // in milliseconds
+
+const maxWaitTime = 10*time.Second
 
 // locks -> 0 means no lock, 1 means one shared lock, n means n shared locks and -1 means exclusive locks
 type LockTable struct {
