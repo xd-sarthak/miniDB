@@ -161,11 +161,18 @@ func (rm *RecoveryManager) doRollback() error {
 }
 
 
-// doRecovers performs a complete database recovery.
-// The method iterates through the log records.
-// Whenever it finds a log record for an unfinished transaction,
-// it calls Undo() on that record.
-// The method stops when it encounters a Checkpoint record or the end of the log.
+// doRecover performs a complete database recovery using the Undo-only recovery protocol.
+//
+// How Undo-Only Recovery Works:
+// 1. We scan the Write-Ahead Log (WAL) *backward* from the end of the log.
+// 2. We keep track of "finished" (committed or rolled back) transactions. If we encounter a
+//    COMMIT or ROLLBACK record, we add that transaction ID to our finished list.
+// 3. If we encounter an update record (e.g. SETINT, SETSTRING) for a transaction that is *not*
+//    in the finished list, it means the transaction was active (uncommitted) at the time of the crash.
+//    We must undo its changes by calling Undo(), which restores the old values.
+// 4. We stop scanning when we encounter a quiescent CHECKPOINT record (which guarantees that
+//    all active transactions prior to the checkpoint had finished and their dirty pages were flushed),
+//    or when we reach the beginning of the log.
 func (rm *RecoveryManager) doRecover() error {
 	finishedTransactions := make([]int, 0, 10)
 	iter, err := rm.logManager.Iterator()
@@ -184,13 +191,17 @@ func (rm *RecoveryManager) doRecover() error {
 			return err
 		}
 
+		// A quiescent checkpoint guarantees all previous transactions were flushed and finished,
+		// so no prior uncommitted transactions need undoing. We can safely stop here.
 		if logRecord.OP() == Checkpoint {
 			return nil
 		}
 
 		if logRecord.OP() == Commit || logRecord.OP() == Rollback {
+			// This transaction committed or rolled back before the crash, so its updates are safe
 			finishedTransactions = append(finishedTransactions, logRecord.TxNum())
 		} else if !contains(finishedTransactions, logRecord.TxNum()) {
+			// Unfinished active transaction found! We must undo its changes.
 			if err := logRecord.Undo(rm.transaction); err != nil {
 				return err
 			}
