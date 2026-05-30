@@ -258,3 +258,18 @@ func (m *Manager) length(filename string) (int, error) {
 	fileSizeInBytes := fileInfo.Size()
 	return int(fileSizeInBytes / int64(m.blocksize)), nil
 }
+
+// Close closes all open files in the file manager. This method is thread-safe.
+func (m *Manager) Close() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	var firstErr error
+	for name, f := range m.openFiles {
+		if err := f.Close(); err != nil && firstErr == nil {
+			firstErr = fmt.Errorf("cannot close file %s: %v", name, err)
+		}
+		delete(m.openFiles, name)
+	}
+	return firstErr
+}

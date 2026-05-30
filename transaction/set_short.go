@@ -39,11 +39,11 @@ func NewSetShortRecord(page *file.Page) (*SetShortRecord, error) {
 	return &SetShortRecord{txNum: txNum, offset: offset, value: val, block: block}, nil
 }
 
-func (r *SetShortRecord) Op() LogRecordType {
+func (r *SetShortRecord) OP() LogRecordType {
 	return SetShort
 }
 
-func (r *SetShortRecord) TxNumber() int {
+func (r *SetShortRecord) TxNum() int {
 	return r.txNum
 }
 

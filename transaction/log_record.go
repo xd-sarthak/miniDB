@@ -34,6 +34,14 @@ func (lrt LogRecordType) String() string {
 		return "SETINT"
 	case SetString:
 		return "SETSTRING"
+	case SetBool:
+		return "SETBOOL"
+	case SetDate:
+		return "SETDATE"
+	case SetLong:
+		return "SETLONG"
+	case SetShort:
+		return "SETSHORT"
 	default:
 		return "UNKNOWN"
 	}
@@ -53,6 +61,14 @@ func FromCode(code int) (LogRecordType, error) {
 		return SetInt, nil
 	case 5:
 		return SetString, nil
+	case 6:
+		return SetBool, nil
+	case 7:
+		return SetDate, nil
+	case 8:
+		return SetLong, nil
+	case 9:
+		return SetShort, nil
 	default:
 		return -1, errors.New("invalid log record type code")
 	}
@@ -94,6 +110,14 @@ func CreateLogRecord(data []byte) (LogRecord, error){
 		return NewSetIntRecord(p)
 	case SetString:
 		return NewSetStringRecord(p)
+	case SetBool:
+		return NewSetBoolRecord(p)
+	case SetDate:
+		return NewSetDateRecord(p)
+	case SetLong:
+		return NewSetLongRecord(p)
+	case SetShort:
+		return NewSetShortRecord(p)
 	default:
 		return nil, errors.New("unknown log record type")
 	}

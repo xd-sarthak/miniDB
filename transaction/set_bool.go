@@ -56,8 +56,8 @@ func (r *SetBoolRecord) OP() LogRecordType {
 	return SetBool
 }
 
-// TxNumber returns the transaction number associated with this log record.
-func (r *SetBoolRecord) TxNumber() int {
+// TxNum returns the transaction number associated with this log record.
+func (r *SetBoolRecord) TxNum() int {
 	return r.txNum
 }
 

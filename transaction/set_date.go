@@ -40,11 +40,11 @@ func NewSetDateRecord(page *file.Page) (*SetDateRecord, error) {
 	return &SetDateRecord{txNum: txNum, offset: offset, value: val, block: block}, nil
 }
 
-func (r *SetDateRecord) Op() LogRecordType {
+func (r *SetDateRecord) OP() LogRecordType {
 	return SetDate
 }
 
-func (r *SetDateRecord) TxNumber() int {
+func (r *SetDateRecord) TxNum() int {
 	return r.txNum
 }
 

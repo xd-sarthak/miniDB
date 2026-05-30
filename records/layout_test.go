@@ -4,6 +4,7 @@ import (
 	"github.com/xd-sarthak/miniDB/utils"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"sort"
 )
 
 func TestNewLayout(t *testing.T) {
@@ -79,15 +80,11 @@ func TestNewLayout(t *testing.T) {
 			layout := NewLayout(schema)
 
 			// Verify field order through offsets
-			var lastOffset int
-			var fields []string
-			for _, field := range schema.Fields() {
-				offset := layout.Offset(field)
-				if offset > lastOffset {
-					fields = append(fields, field)
-					lastOffset = offset
-				}
-			}
+			fields := make([]string, len(schema.Fields()))
+			copy(fields, schema.Fields())
+			sort.SliceStable(fields, func(i, j int) bool {
+				return layout.Offset(fields[i]) < layout.Offset(fields[j])
+			})
 			assert.Equal(t, tt.expectedOrder, fields, "Field order mismatch")
 
 			// Verify slot size

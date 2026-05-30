@@ -39,11 +39,11 @@ func NewSetLongRecord(page *file.Page) (*SetLongRecord, error) {
 	return &SetLongRecord{txNum: txNum, offset: offset, value: val, block: block}, nil
 }
 
-func (r *SetLongRecord) Op() LogRecordType {
+func (r *SetLongRecord) OP() LogRecordType {
 	return SetLong
 }
 
-func (r *SetLongRecord) TxNumber() int {
+func (r *SetLongRecord) TxNum() int {
 	return r.txNum
 }
 

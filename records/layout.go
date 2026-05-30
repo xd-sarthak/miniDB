@@ -43,8 +43,11 @@ func NewLayout(schema *Schema) *Layout {
 
 	// step 2: Sort fields by alignment requirements (largest first)
 	// This ensures that fields with larger alignment requirements are placed first, minimizing padding
-	fields := schema.Fields()
-	sort.Slice(fields, func(i, j int) bool {
+	schemaFields := schema.Fields()
+	fields := make([]string, len(schemaFields))
+	copy(fields, schemaFields)
+
+	sort.SliceStable(fields, func(i, j int) bool {
 		return fieldAlignments[fields[i]] > fieldAlignments[fields[j]]
 	})
 
