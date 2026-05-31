@@ -225,10 +225,6 @@ func (tm *TableManager) GetLayout(tableName string, tx *transaction.Transaction)
 		}
 	}
 
-	if err := tableCatalog.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close table catalog scan: %w", err)
-	}
-
 	if size == -1 {
 		return nil, fmt.Errorf("table %q not found", tableName)
 	}
