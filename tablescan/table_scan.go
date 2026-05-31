@@ -62,6 +62,11 @@ type TableScan struct {
 
 // NewTableScan initializes a new TableScan for the given table name and layout
 func NewTableScan(tx *transaction.Transaction, tableName string, layout *records.Layout) (*TableScan, error) {
+
+	if layout.SlotSize() > tx.BlockSize(){
+		return nil, fmt.Errorf("record size %d exceeds block size %d", layout.SlotSize(), tx.BlockSize())
+	}
+
 	ts := &TableScan{
 		tx:       tx,
 		layout:   layout,
@@ -258,6 +263,11 @@ Try InsertAfter(currentSlot) on current page
                 then InsertAfter(-1) on that block
 */
 func (ts *TableScan) Insert() error {
+
+	if ts.layout.SlotSize() > ts.tx.BlockSize() {
+		return fmt.Errorf("record size %d exceeds block size %d", ts.layout.SlotSize(), ts.tx.BlockSize())
+	}
+	
 	slot, err := ts.recordPage.InsertAfter(ts.currentSlot)
 
 	// Key change: match Java's behavior for handling InsertAfter

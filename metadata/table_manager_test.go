@@ -14,10 +14,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestMetadata(t *testing.T) (*TableManager, *transaction.Transaction, func()) {
+func setupTestMetadata(blockSize int, t *testing.T) (*TableManager, *transaction.Transaction, func()) {
 	dbDir := t.TempDir()
 
-	fm, err := file.NewManager(dbDir, 400)
+	fm, err := file.NewManager(dbDir, blockSize)
 	require.NoError(t, err)
 
 	lm, err := log.NewManager(fm, "logfile")
@@ -38,7 +38,7 @@ func setupTestMetadata(t *testing.T) (*TableManager, *transaction.Transaction, f
 }
 
 func TestTableManager_CreateTable(t *testing.T) {
-	tm, txn, cleanup := setupTestMetadata(t)
+	tm, txn, cleanup := setupTestMetadata(400, t)
 	defer cleanup()
 
 	schema := records.NewSchema()
@@ -116,7 +116,7 @@ func TestTableManager_CreateTable(t *testing.T) {
 }
 
 func TestTableManager_CreateMultipleTables(t *testing.T) {
-	tm, txn, cleanup := setupTestMetadata(t)
+	tm, txn, cleanup := setupTestMetadata(400, t)
 	defer cleanup()
 
 	userSchema := records.NewSchema()
@@ -161,7 +161,7 @@ func TestTableManager_CreateMultipleTables(t *testing.T) {
 }
 
 func TestTableManager_GetLayout(t *testing.T) {
-	tm, txn, cleanup := setupTestMetadata(t)
+	tm, txn, cleanup := setupTestMetadata(400, t)
 	defer cleanup()
 
 	// Define and create a table schema
