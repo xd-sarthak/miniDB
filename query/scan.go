@@ -36,5 +36,5 @@ type Scan interface {
 	GetVal(fieldName string) (Constant, error)
 
 	// Close closes the scan and its subscans, if any.
-	Close() error
+	Close()
 }

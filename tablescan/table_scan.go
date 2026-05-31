@@ -246,11 +246,10 @@ func (ts *TableScan) HasField(fieldName string) bool {
 	return ts.layout.Schema().HasField(fieldName)
 }
 
-func (ts *TableScan) Close() error {
+func (ts *TableScan) Close() {
 	if ts.recordPage != nil {
 		ts.tx.Unpin(ts.recordPage.Block())
 	}
-	return nil
 }
 
 // Insert adds a new record to the table. It tries to insert after the current slot, and if that fails (e.g., page is full), it checks if it's at the last block. If it is, it moves to a new block; otherwise, it moves to the next block and tries again.
@@ -307,9 +306,7 @@ func (ts *TableScan) GetRecordID() *records.ID {
 }
 
 func (ts *TableScan) MoveToRecordID(rid *records.ID) error {
-	if err := ts.Close(); err != nil {
-		return fmt.Errorf("close current page: %w", err)
-	}
+	ts.Close()
 
 	blk := &file.BlockID{
 		File:        ts.fileName,
@@ -330,9 +327,7 @@ func (ts *TableScan) MoveToRecordID(rid *records.ID) error {
 
 // moveToBlock moves the scan to the specified block number.
 func (ts *TableScan) moveToBlock(blockNum int) error {
-	if err := ts.Close(); err != nil {
-		return fmt.Errorf("close current page: %w", err)
-	}
+	ts.Close()
 
 	blk := &file.BlockID{
 		File:        ts.fileName,
@@ -353,9 +348,7 @@ func (ts *TableScan) moveToBlock(blockNum int) error {
 
 // moveToNewBlock moves the scan to a new block.
 func (ts *TableScan) moveToNewBlock() error {
-	if err := ts.Close(); err != nil {
-		return fmt.Errorf("close current page: %w", err)
-	}
+	ts.Close()
 
 	blk, err := ts.tx.Append(ts.fileName)
 	if err != nil {

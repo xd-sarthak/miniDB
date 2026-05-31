@@ -64,6 +64,7 @@ func (vm *ViewManager) CreateView(viewName, viewDefinition string, tx *transacti
 	if err != nil {
 		return fmt.Errorf("failed to create table scan: %v", err)
 	}
+	defer viewCatalogTableScan.Close()
 
 	if err := viewCatalogTableScan.Insert(); err != nil {
 		return fmt.Errorf("failed to insert into view catalog: %v", err)
@@ -73,12 +74,8 @@ func (vm *ViewManager) CreateView(viewName, viewDefinition string, tx *transacti
 		return fmt.Errorf("failed to set view name: %v", err)
 	}
 	
-	if err := viewCatalogTableScan.SetString(viewDefinitionField, viewDefinition); err != nil {
-		return fmt.Errorf("failed to set view definition: %v", err)
-	}
 
-	return viewCatalogTableScan.Close()
-
+	return viewCatalogTableScan.SetString(viewDefinitionField, viewDefinition)
 }
 
 // GetViewDefinition retrieves the view definition for a given view name from the view catalog.

@@ -108,6 +108,7 @@ func (tm *TableManager) insertIntoTableCatalog(
 	if err != nil {
 		return fmt.Errorf("failed to create table catalog scan: %w", err)
 	}
+	defer tableCatalog.Close()
 
 	if err := tableCatalog.Insert(); err != nil {
 		return fmt.Errorf("failed to insert into table catalog: %w", err)
@@ -121,7 +122,11 @@ func (tm *TableManager) insertIntoTableCatalog(
 		return fmt.Errorf("failed to set slot size: %w", err)
 	}
 
-	return tableCatalog.Close()
+	if err := tableCatalog.Insert(); err != nil {
+		return fmt.Errorf("failed to insert into table catalog: %w", err)
+	}
+
+	return nil
 }
 
 // insertIntoFieldCatalog inserts the schema of a table into the field catalog.
@@ -141,6 +146,7 @@ func (tm *TableManager) insertIntoFieldCatalog(
 	if err != nil {
 		return fmt.Errorf("failed to create field catalog scan: %w", err)
 	}
+	defer fieldCatalog.Close()
 
 	for _, field := range schema.Fields() {
 
@@ -178,7 +184,7 @@ func (tm *TableManager) insertIntoFieldCatalog(
 		}
 	}
 
-	return fieldCatalog.Close()
+	return nil
 }
 
 
@@ -194,6 +200,7 @@ func (tm *TableManager) GetLayout(tableName string, tx *transaction.Transaction)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create table catalog scan: %w", err)
 	}
+	defer tableCatalog.Close()
 
 	for {
 		hasNext, err := tableCatalog.Next()
@@ -284,10 +291,6 @@ func (tm *TableManager) GetLayout(tableName string, tx *transaction.Transaction)
 		)
 
 		offsets[fieldName] = fieldOffset
-	}
-
-	if err := fieldCatalog.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close field catalog scan: %w", err)
 	}
 
 	return records.NewLayoutFromMetadata(schema, offsets, size), nil
