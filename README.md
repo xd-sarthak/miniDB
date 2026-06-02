@@ -7,7 +7,7 @@ The database implements the following features:
 - [x] Memory Management
 - [x] Transaction Management
 - [x] Record Management
-- [ ] Metadata Management
+- [x] Metadata Management
 - [ ] Query Processing
 - [ ] Query Parsing
 - [ ] Parsing
