@@ -50,7 +50,7 @@ func WriteRollbackToLog(logManager *log.Manager, txNum int) (int, error) {
 
 	page := file.NewPageFromBytes(record)
 	page.SetInt(0, int(Rollback))
-	page.SetInt(4, txNum)
+	page.SetInt(utils.IntSize, txNum)
 
 	return logManager.Append(record)
 }

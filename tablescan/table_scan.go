@@ -252,25 +252,22 @@ func (ts *TableScan) Close() {
 	}
 }
 
-// Insert adds a new record to the table. It tries to insert after the current slot, and if that fails (e.g., page is full), it checks if it's at the last block. If it is, it moves to a new block; otherwise, it moves to the next block and tries again.
-/*
-Try InsertAfter(currentSlot) on current page
-    ├── found a free slot → done
-    └── no free slot
-            ├── at last block → moveToNewBlock() (grow the file)
-            └── not last block → moveToBlock(n+1)
-                then InsertAfter(-1) on that block
-*/
+// Insert adds a new record to the table.
+// It scans forward from the current position looking for an empty slot.
+// When all remaining slots in the current block are used it moves to the next
+// block, continuing until a free slot is found or a new block is appended.
 func (ts *TableScan) Insert() error {
-
 	if ts.layout.SlotSize() > ts.tx.BlockSize() {
 		return fmt.Errorf("record size %d exceeds block size %d", ts.layout.SlotSize(), ts.tx.BlockSize())
 	}
-	
-	slot, err := ts.recordPage.InsertAfter(ts.currentSlot)
 
-	// Key change: match Java's behavior for handling InsertAfter
-	if err != nil {
+	for {
+		slot, err := ts.recordPage.InsertAfter(ts.currentSlot)
+		if err == nil {
+			ts.currentSlot = slot
+			return nil
+		}
+
 		atLastBlock, err := ts.atLastBlock()
 		if err != nil {
 			return fmt.Errorf("checking last block: %w", err)
@@ -285,15 +282,7 @@ func (ts *TableScan) Insert() error {
 				return fmt.Errorf("move to next block: %w", err)
 			}
 		}
-
-		slot, err = ts.recordPage.InsertAfter(ts.currentSlot) // Start from beginning of new block
-		if err != nil {
-			return fmt.Errorf("insert in new block: %w", err)
-		}
 	}
-
-	ts.currentSlot = slot
-	return nil
 }
 
 

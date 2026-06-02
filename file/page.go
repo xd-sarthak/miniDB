@@ -27,11 +27,17 @@ func NewPageFromBytes(bytes []byte) *Page {
 
 // GetInt retrieves a 32-bit integer from the buffer at the specified offset.
 func (p *Page) GetInt(offset int) int {
+	if offset < 0 || offset+4 > len(p.buffer) {
+		panic(fmt.Sprintf("page.GetInt: offset %d out of bounds (page size %d)", offset, len(p.buffer)))
+	}
 	return int(int32(binary.BigEndian.Uint32(p.buffer[offset:])))
 }
 
 // SetInt writes a 32-bit integer to the buffer at the specified offset.
 func (p *Page) SetInt(offset int, n int) {
+	if offset < 0 || offset+4 > len(p.buffer) {
+		panic(fmt.Sprintf("page.SetInt: offset %d out of bounds (page size %d)", offset, len(p.buffer)))
+	}
 	binary.BigEndian.PutUint32(p.buffer[offset:], uint32(n))
 }
 
@@ -65,10 +71,12 @@ func (p *Page) TryGetBytes(offset int) ([]byte, error) {
 
 // SetBytes writes a byte slice to the buffer starting at the specified offset.
 func (p *Page) SetBytes(offset int, b []byte) {
-	length := len(b)
-	p.SetInt(offset, length)
-	start := offset + 4
-	copy(p.buffer[start:], b)
+	end := offset + 4 + len(b)
+	if offset < 0 || end > len(p.buffer) {
+		panic(fmt.Sprintf("page.SetBytes: offset %d + length %d out of bounds (page size %d)", offset, len(b), len(p.buffer)))
+	}
+	p.SetInt(offset, len(b))
+	copy(p.buffer[offset+4:], b)
 }
 
 // GetString retrieves a string from the buffer at the specified offset.
@@ -94,19 +102,31 @@ func (p *Page) SetString(offset int, s string) error {
 
 // retrieves a 16 bit integer from buffer at offset
 func (p *Page) GetShort(offset int) int16 {
+	if offset < 0 || offset+2 > len(p.buffer) {
+		panic(fmt.Sprintf("page.GetShort: offset %d out of bounds (page size %d)", offset, len(p.buffer)))
+	}
 	return int16(binary.BigEndian.Uint16(p.buffer[offset:]))
 }
 
 //  writes a 16 bit integer to buffer at offset
 func (p *Page) SetShort(offset int, n int16) {
+	if offset < 0 || offset+2 > len(p.buffer) {
+		panic(fmt.Sprintf("page.SetShort: offset %d out of bounds (page size %d)", offset, len(p.buffer)))
+	}
 	binary.BigEndian.PutUint16(p.buffer[offset:], uint16(n))
 }
 
 func(p *Page) GetBool(offset int) bool {
+	if offset < 0 || offset+1 > len(p.buffer) {
+		panic(fmt.Sprintf("page.GetBool: offset %d out of bounds (page size %d)", offset, len(p.buffer)))
+	}
 	return p.buffer[offset] != 0
 }
 
 func(p *Page) SetBool(offset int, value bool) {
+	if offset < 0 || offset+1 > len(p.buffer) {
+		panic(fmt.Sprintf("page.SetBool: offset %d out of bounds (page size %d)", offset, len(p.buffer)))
+	}
 	if value {
 		p.buffer[offset] = 1
 	} else {
@@ -116,12 +136,18 @@ func(p *Page) SetBool(offset int, value bool) {
 
 // retrives a data stored as a unix timestamp (int64) and converts it to time.Time
 func(p *Page) GetDate(offset int) time.Time {
+	if offset < 0 || offset+8 > len(p.buffer) {
+		panic(fmt.Sprintf("page.GetDate: offset %d out of bounds (page size %d)", offset, len(p.buffer)))
+	}
 	unixTime := int64(binary.BigEndian.Uint64(p.buffer[offset:]))
 	return time.Unix(unixTime, 0)
 }
 
 // SetDate writes a date (as a Unix timestamp) to the buffer at the specified offset.
 func (p *Page) SetDate(offset int, date time.Time) {
+	if offset < 0 || offset+8 > len(p.buffer) {
+		panic(fmt.Sprintf("page.SetDate: offset %d out of bounds (page size %d)", offset, len(p.buffer)))
+	}
 	binary.BigEndian.PutUint64(p.buffer[offset:], uint64(date.Unix()))
 }
 
@@ -139,10 +165,16 @@ func (p *Page) Contents() []byte {
 
 // GetLong retrieves a 64-bit integer from the buffer at the specified offset.
 func (p *Page) GetLong(offset int) int64 {
+	if offset < 0 || offset+8 > len(p.buffer) {
+		panic(fmt.Sprintf("page.GetLong: offset %d out of bounds (page size %d)", offset, len(p.buffer)))
+	}
 	return int64(binary.BigEndian.Uint64(p.buffer[offset:]))
 }
 
 // SetLong writes a 64-bit integer to the buffer at the specified offset.
 func (p *Page) SetLong(offset int, n int64) {
+	if offset < 0 || offset+8 > len(p.buffer) {
+		panic(fmt.Sprintf("page.SetLong: offset %d out of bounds (page size %d)", offset, len(p.buffer)))
+	}
 	binary.BigEndian.PutUint64(p.buffer[offset:], uint64(n))
 }

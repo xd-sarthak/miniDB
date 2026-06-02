@@ -122,10 +122,6 @@ func (tm *TableManager) insertIntoTableCatalog(
 		return fmt.Errorf("failed to set slot size: %w", err)
 	}
 
-	if err := tableCatalog.Insert(); err != nil {
-		return fmt.Errorf("failed to insert into table catalog: %w", err)
-	}
-
 	return nil
 }
 
@@ -241,6 +237,7 @@ func (tm *TableManager) GetLayout(tableName string, tx *transaction.Transaction)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create field catalog scan: %w", err)
 	}
+	defer fieldCatalog.Close()
 
 	for {
 		hasNext, err := fieldCatalog.Next()

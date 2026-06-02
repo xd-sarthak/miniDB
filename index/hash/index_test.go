@@ -140,11 +140,11 @@ func TestHashIndex_Delete(t *testing.T) {
 	err := hashIndex.Insert(query.NewConstant("test_key"), dataRecordID)
 	require.NoError(t, err)
 
-	err = hashIndex.Delete(query.NewConstant("test_key"), dataRecordID)
+	err = hashIndex.Delete("test_key", dataRecordID)
 	require.NoError(t, err)
 
 	// Verify deletion
-	err = hashIndex.BeforeFirst(query.NewConstant("test_key"))
+	err = hashIndex.BeforeFirst("test_key")
 	require.NoError(t, err)
 
 	hasNext, err := hashIndex.Next()

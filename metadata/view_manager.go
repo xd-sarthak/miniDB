@@ -91,6 +91,7 @@ func (vm *ViewManager) GetViewDefinition(viewName string, tx *transaction.Transa
 	if err != nil {
 		return "", fmt.Errorf("failed to create table scan: %v", err)
 	}
+	defer viewCatalogTableScan.Close()
 
 	for {
 		hasNext, err := viewCatalogTableScan.Next()

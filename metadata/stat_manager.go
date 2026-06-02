@@ -65,10 +65,11 @@ func (s *StatManager) GetStatInfo(table string, layout *records.Layout, transact
 
 	s.numCalls++
 	if s.numCalls >= s.refreshInterval {
-		if err := s.RefreshStatistics(transaction); err != nil {
+		// Call the internal variant directly — RefreshStatistics would deadlock because
+		// it also acquires s.mu, which we already hold.
+		if err := s._refreshStatistics(transaction); err != nil {
 			return nil, err
 		}
-		s.numCalls = 0
 	}
 
 	if statInfo, exists := s.tableStats[table]; exists {

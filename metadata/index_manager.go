@@ -120,7 +120,7 @@ func (m *IndexManager) GetIndexInfo(tableName string, transaction *transaction.T
 		}
 		
 		indexInfo := NewIndexInfo(indexName, fieldName, tableLayout.Schema(), transaction, tableStatsInfo)
-		result[indexName] = indexInfo
+		result[fieldName] = indexInfo
 	}
 
 	return result, nil

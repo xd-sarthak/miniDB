@@ -1,6 +1,7 @@
 package metadata
 
 import (
+	"fmt"
 	"github.com/xd-sarthak/miniDB/transaction"
 	"github.com/xd-sarthak/miniDB/records"
 )
@@ -15,24 +16,24 @@ type Manager struct {
 	indexManager *IndexManager
 }
 
-func NewManager(isNew bool, transaction *transaction.Transaction) *Manager {
+func NewManager(isNew bool, transaction *transaction.Transaction) (*Manager, error) {
 	m := &Manager{}
 
 	var err error
 	if m.tableManager, err = NewTableManager(isNew, transaction); err != nil {
-		return nil
+		return nil, fmt.Errorf("table manager: %w", err)
 	}
 	if m.viewManager, err = NewViewManager(isNew, m.tableManager, transaction); err != nil {
-		return nil
+		return nil, fmt.Errorf("view manager: %w", err)
 	}
 	if m.statManager, err = NewStatMgr(m.tableManager, transaction, 100); err != nil {
-		return nil
+		return nil, fmt.Errorf("stat manager: %w", err)
 	}
 	if m.indexManager, err = NewIndexManager(isNew, m.tableManager, m.statManager, transaction); err != nil {
-		return nil
+		return nil, fmt.Errorf("index manager: %w", err)
 	}
 
-	return m
+	return m, nil
 }
 
 // CreateTable creates a new table having the specified name and schema.

@@ -90,10 +90,36 @@ func (idx *Index) Next() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if currentValue == idx.searchKey {
+		// GetVal returns a query.Constant wrapping the raw value; searchKey is the raw
+		// value stored by BeforeFirst. Unwrap before comparing.
+		if unwrapConstant(currentValue) == idx.searchKey {
 			return true, nil
 		}
 	}
+}
+
+// unwrapConstant extracts the underlying raw value from a query.Constant so it can
+// be compared directly against idx.searchKey (which is always a raw any value).
+func unwrapConstant(c query.Constant) any {
+	if v, ok := c.AsString(); ok {
+		return v
+	}
+	if v, ok := c.AsInt(); ok {
+		return v
+	}
+	if v, ok := c.AsLong(); ok {
+		return v
+	}
+	if v, ok := c.AsShort(); ok {
+		return v
+	}
+	if v, ok := c.AsBool(); ok {
+		return v
+	}
+	if v, ok := c.AsDate(); ok {
+		return v
+	}
+	return nil
 }
 
 // GetDataRecordID retrieves the data record ID from the current record in the table scan for the bucket.
