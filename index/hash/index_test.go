@@ -9,7 +9,6 @@ import (
 	"github.com/xd-sarthak/miniDB/buffer"
 	"github.com/xd-sarthak/miniDB/file"
 	"github.com/xd-sarthak/miniDB/log"
-	"github.com/xd-sarthak/miniDB/query"
 	"github.com/xd-sarthak/miniDB/records"
 	"github.com/xd-sarthak/miniDB/transaction"
 )
@@ -62,7 +61,7 @@ func TestHashIndex_Next(t *testing.T) {
 	testRecord := records.NewID(1, 1)
 
 	// Insert a record
-	err := hashIndex.Insert(query.NewConstant("test_key"), testRecord)
+	err := hashIndex.Insert("test_key", testRecord)
 	require.NoError(t, err)
 
 	// Set cursor before first record
@@ -95,7 +94,7 @@ func TestHashIndex_GetDataRecordID(t *testing.T) {
 
 	// Insert a record
 	dataRecordID := records.NewID(1, 1)
-	err := hashIndex.Insert(query.NewConstant("test_key"), dataRecordID)
+	err := hashIndex.Insert("test_key", dataRecordID)
 	require.NoError(t, err)
 
 	err = hashIndex.BeforeFirst("test_key")
@@ -115,7 +114,7 @@ func TestHashIndex_Insert(t *testing.T) {
 
 	// Insert a record
 	dataRecordID := records.NewID(1, 1)
-	err := hashIndex.Insert(query.NewConstant("test_key"), dataRecordID)
+	err := hashIndex.Insert("test_key", dataRecordID)
 	require.NoError(t, err)
 
 	// Verify insertion
@@ -137,7 +136,7 @@ func TestHashIndex_Delete(t *testing.T) {
 
 	// Insert and then delete a record
 	dataRecordID := records.NewID(1, 1)
-	err := hashIndex.Insert(query.NewConstant("test_key"), dataRecordID)
+	err := hashIndex.Insert("test_key", dataRecordID)
 	require.NoError(t, err)
 
 	err = hashIndex.Delete("test_key", dataRecordID)

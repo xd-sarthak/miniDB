@@ -3,7 +3,6 @@ package metadata
 import (
 	"github.com/xd-sarthak/miniDB/index"
 	"github.com/xd-sarthak/miniDB/index/hash"
-	"github.com/xd-sarthak/miniDB/query"
 	"github.com/xd-sarthak/miniDB/records"
 	"github.com/xd-sarthak/miniDB/transaction"
 )
@@ -38,40 +37,12 @@ type hashIndexAdapter struct {
 	*hash.Index
 }
 
-func (a *hashIndexAdapter) BeforeFirst(searchkey query.Constant) error {
-	var raw any
-	if v, ok := searchkey.AsString(); ok {
-		raw = v
-	} else if v, ok := searchkey.AsInt(); ok {
-		raw = v
-	} else if v, ok := searchkey.AsLong(); ok {
-		raw = v
-	} else if v, ok := searchkey.AsShort(); ok {
-		raw = v
-	} else if v, ok := searchkey.AsBool(); ok {
-		raw = v
-	} else if v, ok := searchkey.AsDate(); ok {
-		raw = v
-	}
-	return a.Index.BeforeFirst(raw)
+func (a *hashIndexAdapter) BeforeFirst(searchkey any) error {
+	return a.Index.BeforeFirst(searchkey)
 }
 
-func (a *hashIndexAdapter) Delete(dataValue query.Constant, dataRecordID *records.ID) error {
-	var raw any
-	if v, ok := dataValue.AsString(); ok {
-		raw = v
-	} else if v, ok := dataValue.AsInt(); ok {
-		raw = v
-	} else if v, ok := dataValue.AsLong(); ok {
-		raw = v
-	} else if v, ok := dataValue.AsShort(); ok {
-		raw = v
-	} else if v, ok := dataValue.AsBool(); ok {
-		raw = v
-	} else if v, ok := dataValue.AsDate(); ok {
-		raw = v
-	}
-	return a.Index.Delete(raw, dataRecordID)
+func (a *hashIndexAdapter) Delete(dataValue any, dataRecordID *records.ID) error {
+	return a.Index.Delete(dataValue, dataRecordID)
 }
 
 // Open opens the index described by this object.

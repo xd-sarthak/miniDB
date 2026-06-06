@@ -2,10 +2,10 @@ package tablescan
 
 import (
 	"fmt"
-	"github.com/xd-sarthak/miniDB/query"
 	"github.com/xd-sarthak/miniDB/records"
 	"github.com/xd-sarthak/miniDB/file"
 	"github.com/xd-sarthak/miniDB/transaction"
+	"github.com/xd-sarthak/miniDB/scan"
 	"time"
 )
 
@@ -49,10 +49,9 @@ File:  [ Block 0 ] [ Block 1 ] [ Block 2 ] ...
 // USER table -> users.tbl
 const fileExtension = ".tbl"
 
-var _ query.UpdateScan = (*TableScan)(nil) // compile-time assertion that TableScan implements UpdateScan
+var _ scan.UpdateScan = (*TableScan)(nil) // compile-time assertion that TableScan implements UpdateScan
 
 type TableScan struct {
-	query.UpdateScan  // embedding the UpdateScan interface to implement it
 	tx               *transaction.Transaction
 	layout           *records.Layout
 	recordPage       *records.Page
@@ -161,30 +160,30 @@ func (ts *TableScan) GetDate(fieldName string) (time.Time, error) {
 	return ts.recordPage.GetDate(ts.currentSlot, fieldName)
 }
 
-func (ts *TableScan) GetVal(fieldName string) (query.Constant, error) {
+func (ts *TableScan) GetVal(fieldName string) (any, error) {
 	fieldType := ts.layout.Schema().Type(fieldName)
 
 	switch fieldType {
 	case records.Integer:
 		val, err := ts.GetInt(fieldName)
-		return query.NewConstant(val), err
+		return val, err
 	case records.Long:
 		val, err := ts.GetLong(fieldName)
-		return query.NewConstant(val), err
+		return val, err
 	case records.Short:
 		val, err := ts.GetShort(fieldName)
-		return query.NewConstant(val), err
+		return val, err
 	case records.Varchar:
 		val, err := ts.GetString(fieldName)
-		return query.NewConstant(val), err
+		return val, err
 	case records.Boolean:
 		val, err := ts.GetBool(fieldName)
-		return query.NewConstant(val), err
+		return val, err
 	case records.Date:
 		val, err := ts.GetDate(fieldName)
-		return query.NewConstant(val), err
+		return val, err
 	default:
-		return query.Constant{}, fmt.Errorf("unsupported field type: %v", fieldType)
+		return nil, fmt.Errorf("unsupported field type: %v", fieldType)
 	}
 }
 
@@ -212,30 +211,30 @@ func (ts *TableScan) SetDate(fieldName string, val time.Time) error {
 	return ts.recordPage.SetDate(ts.currentSlot, fieldName, val)
 }
 
-func (ts *TableScan) SetVal(fieldName string, val query.Constant) error {
+func (ts *TableScan) SetVal(fieldName string, val any) error {
 	switch ts.layout.Schema().Type(fieldName) {
 	case records.Integer:
-		if v, ok := val.AsInt(); ok {
+		if v, ok := val.(int); ok {
 			return ts.SetInt(fieldName, v)
 		}
 	case records.Long:
-		if v, ok := val.AsLong(); ok {
+		if v, ok := val.(int64); ok {
 			return ts.SetLong(fieldName, v)
 		}
 	case records.Short:
-		if v, ok := val.AsShort(); ok {
+		if v, ok := val.(int16); ok {
 			return ts.SetShort(fieldName, v)
 		}
 	case records.Varchar:
-		if v, ok := val.AsString(); ok {
+		if v, ok := val.(string); ok {
 			return ts.SetString(fieldName, v)
 		}
 	case records.Boolean:
-		if v, ok := val.AsBool(); ok {
+		if v, ok := val.(bool); ok {
 			return ts.SetBool(fieldName, v)
 		}
 	case records.Date:
-		if v, ok := val.AsDate(); ok {
+		if v, ok := val.(time.Time); ok {
 			return ts.SetDate(fieldName, v)
 		}
 	}

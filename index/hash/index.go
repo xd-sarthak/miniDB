@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/xd-sarthak/miniDB/index"
-	"github.com/xd-sarthak/miniDB/query"
 	"github.com/xd-sarthak/miniDB/records"
 	"github.com/xd-sarthak/miniDB/tablescan"
 	"github.com/xd-sarthak/miniDB/transaction"
@@ -90,36 +89,12 @@ func (idx *Index) Next() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		// GetVal returns a query.Constant wrapping the raw value; searchKey is the raw
-		// value stored by BeforeFirst. Unwrap before comparing.
-		if unwrapConstant(currentValue) == idx.searchKey {
+		// GetVal returns the raw value; searchKey is the raw value stored by
+		// BeforeFirst. Compare directly.
+		if currentValue == idx.searchKey {
 			return true, nil
 		}
 	}
-}
-
-// unwrapConstant extracts the underlying raw value from a query.Constant so it can
-// be compared directly against idx.searchKey (which is always a raw any value).
-func unwrapConstant(c query.Constant) any {
-	if v, ok := c.AsString(); ok {
-		return v
-	}
-	if v, ok := c.AsInt(); ok {
-		return v
-	}
-	if v, ok := c.AsLong(); ok {
-		return v
-	}
-	if v, ok := c.AsShort(); ok {
-		return v
-	}
-	if v, ok := c.AsBool(); ok {
-		return v
-	}
-	if v, ok := c.AsDate(); ok {
-		return v
-	}
-	return nil
 }
 
 // GetDataRecordID retrieves the data record ID from the current record in the table scan for the bucket.
@@ -137,26 +112,8 @@ func (idx *Index) GetDataRecordID() (*records.ID, error) {
 }
 
 // Insert inserts a new record into the table scan for the bucket.
-func (idx *Index) Insert(dataValue query.Constant, dataRecordID *records.ID) error {
-	// Extract raw value from query.Constant for hashing
-	var raw any
-	if v, ok := dataValue.AsString(); ok {
-		raw = v
-	} else if v, ok := dataValue.AsInt(); ok {
-		raw = v
-	} else if v, ok := dataValue.AsLong(); ok {
-		raw = v
-	} else if v, ok := dataValue.AsShort(); ok {
-		raw = v
-	} else if v, ok := dataValue.AsBool(); ok {
-		raw = v
-	} else if v, ok := dataValue.AsDate(); ok {
-		raw = v
-	} else {
-		return fmt.Errorf("unsupported constant type for insert")
-	}
-
-	if err := idx.BeforeFirst(raw); err != nil {
+func (idx *Index) Insert(dataValue any, dataRecordID *records.ID) error {
+	if err := idx.BeforeFirst(dataValue); err != nil {
 		return err
 	}
 

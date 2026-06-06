@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xd-sarthak/miniDB/query"
 	"github.com/xd-sarthak/miniDB/records"
 	"github.com/xd-sarthak/miniDB/tablescan"
 	"github.com/xd-sarthak/miniDB/transaction"
@@ -101,9 +100,9 @@ func TestIndexManager_GetIndexInfo(t *testing.T) {
 
 	// Open the index and perform operations
 	idx := indexInfo.Open()
-	err = idx.Insert(query.NewConstant(1234), records.NewID(1, 1))
+	err = idx.Insert(1234, records.NewID(1, 1))
 	require.NoError(t, err)
-	err = idx.BeforeFirst(query.NewConstant(1234))
+	err = idx.BeforeFirst(1234)
 	require.NoError(t, err)
 	hasNext, err := idx.Next()
 	require.NoError(t, err)

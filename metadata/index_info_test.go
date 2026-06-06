@@ -10,7 +10,6 @@ import (
 	"github.com/xd-sarthak/miniDB/file"
 	"github.com/xd-sarthak/miniDB/index"
 	"github.com/xd-sarthak/miniDB/log"
-	"github.com/xd-sarthak/miniDB/query"
 	"github.com/xd-sarthak/miniDB/records"
 	"github.com/xd-sarthak/miniDB/transaction"
 )
@@ -68,11 +67,11 @@ func TestIndexInfo_InsertAndValidate(t *testing.T) {
 	idx := indexInfo.Open()
 
 	// Insert records into the index
-	err := idx.Insert(query.NewConstant("key1"), records.NewID(1, 1))
+	err := idx.Insert("key1", records.NewID(1, 1))
 	require.NoError(t, err)
-	err = idx.Insert(query.NewConstant("key2"), records.NewID(2, 2))
+	err = idx.Insert("key2", records.NewID(2, 2))
 	require.NoError(t, err)
-	err = idx.Insert(query.NewConstant("key1"), records.NewID(3, 3)) // Duplicate key with different ID
+	err = idx.Insert("key1", records.NewID(3, 3)) // Duplicate key with different ID
 	require.NoError(t, err)
 
 	// Validate RecordsOutput and DistinctValues
@@ -88,9 +87,9 @@ func TestIndexInfo_DeleteAndValidate(t *testing.T) {
 	idx := indexInfo.Open()
 
 	// Insert and delete a record
-	err := idx.Insert(query.NewConstant("key1"), records.NewID(1, 1))
+	err := idx.Insert("key1", records.NewID(1, 1))
 	require.NoError(t, err)
-	err = idx.Delete(query.NewConstant("key1"), records.NewID(1, 1))
+	err = idx.Delete("key1", records.NewID(1, 1))
 	require.NoError(t, err)
 
 	// Verify RecordsOutput and DistinctValues remain consistent

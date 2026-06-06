@@ -1,22 +1,21 @@
 package index
 
 import (
-	"github.com/xd-sarthak/miniDB/query"
 	"github.com/xd-sarthak/miniDB/records"
 )
 
 // generic index interface
 type Index interface {
 	// BeforeFirst positions the index before the first record with the given search key
-	BeforeFirst(searchkey query.Constant) error
+	BeforeFirst(searchkey any) error
 	//Next moves the index to the next record and returns true if there is a next record, false otherwise
 	Next() (bool, error)
 	// GetDataRecordID returns the data record ID of the current index record
 	GetDataRecordID() (*records.ID, error)
 	// Insert inserts a new index record with the given data value and data record ID
-	Insert(datavalue query.Constant, dataRecordID *records.ID) error
+	Insert(datavalue any, dataRecordID *records.ID) error
 	// Delete deletes the index record with the given data value and data record ID
-	Delete(datavalue query.Constant, dataRecordID *records.ID) error
+	Delete(datavalue any, dataRecordID *records.ID) error
 	// Close closes the index and releases any resources held by it
 	Close()
 }
