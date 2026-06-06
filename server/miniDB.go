@@ -11,7 +11,12 @@ import (
 )
 
 const (
-	blockSize = 400
+	// blockSize is the on-disk page size. It must be large enough to hold a
+	// single record of every catalog table. The view catalog alone needs ~480
+	// bytes (a VARCHAR(N) reserves 4+4N bytes for the UTF-8 worst case), so the
+	// old 400-byte page could not even store the system catalog and made views
+	// unusable. 4 KiB is a realistic page size with ample headroom.
+	blockSize = 4096
 	bufferPoolSize = 8
 	logFileName = "minidb.log"
 )
@@ -49,7 +54,10 @@ func NewMiniDB(dbDirectory string) (*MiniDB, error) {
 		return nil, fmt.Errorf("failed to initialize MiniDB: %v", err)
 	}
 
-	tx := db.NewTx()
+	tx, err := db.NewTx()
+	if err != nil {
+		return nil, fmt.Errorf("failed to start bootstrap transaction: %v", err)
+	}
 	isNew := db.fileManager.IsNew()
 	if isNew {
 		fmt.Println("Initializing new database...")
@@ -86,8 +94,8 @@ func NewMiniDB(dbDirectory string) (*MiniDB, error) {
 
 
 
-func (db *MiniDB) NewTx() *transaction.Transaction {
-	return transaction.NewTransaction(db.fileManager, db.logManager, db.bufferManager)
+func (db *MiniDB) NewTx() (*transaction.Transaction, error) {
+	return transaction.NewTransaction(db.fileManager, db.logManager, db.bufferManager, db.lockTable)
 }
 
 func (db *MiniDB) MetadataManager() *metadata.Manager {

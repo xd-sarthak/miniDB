@@ -12,6 +12,7 @@ import (
 	"github.com/xd-sarthak/miniDB/log"
 	"github.com/xd-sarthak/miniDB/records"
 	"github.com/xd-sarthak/miniDB/transaction"
+	"github.com/xd-sarthak/miniDB/transaction/concurrency"
 )
 
 func setupIndexInfoTest(t *testing.T) (*IndexInfo, *transaction.Transaction, func()) {
@@ -27,7 +28,8 @@ func setupIndexInfoTest(t *testing.T) (*IndexInfo, *transaction.Transaction, fun
 
 	bm := buffer.NewManager(fm, lm, 8)
 
-	transaction := transaction.NewTransaction(fm, lm, bm)
+	transaction, err := transaction.NewTransaction(fm, lm, bm, concurrency.NewLockTable())
+	require.NoError(t, err)
 
 	tableSchema := records.NewSchema()
 	tableSchema.AddIntField("block")

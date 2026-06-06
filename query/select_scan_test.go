@@ -12,6 +12,7 @@ import (
 	"github.com/xd-sarthak/miniDB/records"
 	"github.com/xd-sarthak/miniDB/tablescan"
 	"github.com/xd-sarthak/miniDB/transaction"
+	"github.com/xd-sarthak/miniDB/transaction/concurrency"
 )
 
 // This helper sets up a TableScan with some records we can filter on.
@@ -68,7 +69,8 @@ func createTransactionAndLayout(t *testing.T) (*transaction.Transaction, *record
 	bm := buffer.NewManager(fm, lm, 3)
 
 	// Create a transaction.
-	transaction := transaction.NewTransaction(fm, lm, bm)
+	transaction, err := transaction.NewTransaction(fm, lm, bm, concurrency.NewLockTable())
+	require.NoError(t, err)
 
 	// Create a schema with some sample fields.
 	schema := records.NewSchema()

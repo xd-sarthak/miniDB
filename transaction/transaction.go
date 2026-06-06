@@ -39,16 +39,26 @@ type Transaction struct {
 // This method depends on the file, log, and buffer managers which it receives from the instantiating class.
 // These objects are usually created during system initialization. Thus, this constructor cannot be called until either
 // the DropDB#Init or DropDB#InitFileLogAndBufferManager methods are called.
-func NewTransaction(fileManager *file.Manager, logManager *log.Manager, bufferManager *buffer.Manager) *Transaction {
+//
+// The lockTable MUST be the single, process-wide lock table shared by every transaction.
+// Passing a per-transaction lock table defeats concurrency control entirely (transactions
+// would never see each other's locks), so callers must hand in the same instance every time.
+func NewTransaction(fileManager *file.Manager, logManager *log.Manager, bufferManager *buffer.Manager, lockTable *concurrency.LockTable) (*Transaction, error) {
 	tx := &Transaction{
 		fileManager:        fileManager,
 		bufferManager:      bufferManager,
 		txNum:              nextTxNumber(),
-		concurrencyManager: concurrency.NewManager(concurrency.NewLockTable()),
+		concurrencyManager: concurrency.NewManager(lockTable),
 		myBuffers:          NewBufferList(bufferManager),
 	}
 	tx.recoverManager = NewRecoveryManager(tx, tx.txNum, logManager, bufferManager)
-	return tx
+	// Record the start of the transaction in the WAL. This is the marker that
+	// Rollback scans back to, and it gives every transaction an explicit start
+	// boundary in the log.
+	if _, err := tx.recoverManager.Start(); err != nil {
+		return nil, fmt.Errorf("failed to write start record for transaction %d: %w", tx.txNum, err)
+	}
+	return tx, nil
 }
 
 // Commit commits the current transaction.
@@ -56,12 +66,16 @@ func NewTransaction(fileManager *file.Manager, logManager *log.Manager, bufferMa
 // Writes and flushes a commit record to the log,
 // Releases all the locks, and unpins any pinned buffers.
 func (tx *Transaction) Commit() error {
+	// Always release locks and unpin buffers, even if the commit fails partway
+	// through. Otherwise a flush error would strand locks and leave buffers
+	// pinned forever, exhausting the shared buffer pool. (LIFO: Release runs
+	// before UnpinAll, matching the original ordering.)
+	defer tx.myBuffers.UnpinAll()
+	defer tx.concurrencyManager.Release()
 	if err := tx.recoverManager.Commit(); err != nil {
 		return err
 	}
 	fmt.Printf("Transaction %d committed\n", tx.txNum)
-	tx.concurrencyManager.Release()
-	tx.myBuffers.UnpinAll()
 	return nil
 }
 
@@ -71,12 +85,14 @@ func (tx *Transaction) Commit() error {
 // Writes and flushes a rollback record to the log,
 // Releases all the locks, and unpins any pinned buffers.
 func (tx *Transaction) Rollback() error {
+	// Always release locks and unpin buffers, even if the rollback fails partway
+	// through, to avoid stranding locks and pinned buffers.
+	defer tx.myBuffers.UnpinAll()
+	defer tx.concurrencyManager.Release()
 	if err := tx.recoverManager.Rollback(); err != nil {
 		return err
 	}
 	fmt.Printf("Transaction %d rolled back\n", tx.txNum)
-	tx.concurrencyManager.Release()
-	tx.myBuffers.UnpinAll()
 	return nil
 }
 

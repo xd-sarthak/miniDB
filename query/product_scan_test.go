@@ -7,6 +7,7 @@ import (
 	"github.com/xd-sarthak/miniDB/log"
 	"github.com/xd-sarthak/miniDB/records"
 	"github.com/xd-sarthak/miniDB/transaction"
+	"github.com/xd-sarthak/miniDB/transaction/concurrency"
 	"os"
 	"testing"
 
@@ -102,7 +103,8 @@ func createCustomTransactionAndLayout(t *testing.T, defineSchema func(*records.S
 	require.NoError(t, err, "failed to create log manager")
 
 	bm := buffer.NewManager(fm, lm, 3)
-	transaction := transaction.NewTransaction(fm, lm, bm)
+	transaction, err := transaction.NewTransaction(fm, lm, bm, concurrency.NewLockTable())
+	require.NoError(t, err)
 
 	// Define the schema
 	schema := records.NewSchema()

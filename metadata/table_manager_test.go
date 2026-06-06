@@ -9,6 +9,7 @@ import (
 	"github.com/xd-sarthak/miniDB/records"
 	"github.com/xd-sarthak/miniDB/tablescan"
 	"github.com/xd-sarthak/miniDB/transaction"
+	"github.com/xd-sarthak/miniDB/transaction/concurrency"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,7 +26,8 @@ func setupTestMetadata(blockSize int, t *testing.T) (*TableManager, *transaction
 
 	bm := buffer.NewManager(fm, lm, 8)
 
-	transaction := transaction.NewTransaction(fm, lm, bm)
+	transaction, err := transaction.NewTransaction(fm, lm, bm, concurrency.NewLockTable())
+	require.NoError(t, err)
 
 	tm, err := NewTableManager(true, transaction)
 	require.NoError(t, err)

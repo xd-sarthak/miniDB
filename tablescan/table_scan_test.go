@@ -12,6 +12,7 @@ import (
 	"github.com/xd-sarthak/miniDB/file"
 	"github.com/xd-sarthak/miniDB/records"
 	"github.com/xd-sarthak/miniDB/transaction"
+	"github.com/xd-sarthak/miniDB/transaction/concurrency"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,7 +33,8 @@ func setupTestTable(t *testing.T) (*TableScan, *transaction.Transaction, func())
 	bm := buffer.NewManager(fm, lm, 3) // small buffer size to test block overflow
 
 	// Create transaction
-	tx := transaction.NewTransaction(fm, lm, bm)
+	tx, err := transaction.NewTransaction(fm, lm, bm, concurrency.NewLockTable())
+	require.NoError(t, err)
 
 	// Create schema
 	schema := records.NewSchema()
@@ -289,7 +291,8 @@ func TestTableScanOperations(t *testing.T) {
 	require.NoError(t, err)
 
 	bm := buffer.NewManager(fm, lm, 8)
-	tx := transaction.NewTransaction(fm, lm, bm)
+	tx, err := transaction.NewTransaction(fm, lm, bm, concurrency.NewLockTable())
+	require.NoError(t, err)
 	defer tx.Commit()
 
 	// Create schema and layout

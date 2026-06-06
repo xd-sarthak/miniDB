@@ -5,7 +5,7 @@ import (
 	"github.com/xd-sarthak/miniDB/file"
 	"github.com/xd-sarthak/miniDB/log"
 	"github.com/xd-sarthak/miniDB/transaction"
-	//"github.com/xd-sarthak/miniDB/transaction/concurrency"
+	"github.com/xd-sarthak/miniDB/transaction/concurrency"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -27,7 +27,8 @@ func setupTestEnv(t *testing.T) (*transaction.Transaction, *file.BlockID, *Layou
 	//lockTable := concurrency.NewLockTable()
 
 	// Create transaction
-	transaction := transaction.NewTransaction(fm, lm, bm)
+	transaction, err := transaction.NewTransaction(fm, lm, bm, concurrency.NewLockTable())
+	assert.NoError(t, err)
 
 	// Create test file and block
 	_, err = fm.Append("testfile")

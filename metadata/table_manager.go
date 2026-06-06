@@ -81,6 +81,12 @@ func NewTableManager(isNew bool, tx *transaction.Transaction) (*TableManager, er
 func (tm *TableManager) CreateTable(tableName string, schema *records.Schema, tx *transaction.Transaction) error {
 	tableLayout := records.NewLayout(schema)
 
+	// Fail fast: a record slot must fit inside a single block, otherwise the
+	// table can be created in the catalog but every scan of it would later fail.
+	if tableLayout.SlotSize() > tx.BlockSize() {
+		return fmt.Errorf("cannot create table %q: record slot size %d exceeds block size %d", tableName, tableLayout.SlotSize(), tx.BlockSize())
+	}
+
 	if err := tm.insertIntoTableCatalog(tx, tableName, tableLayout); err != nil {
 		return fmt.Errorf("failed to insert into table catalog: %w", err)
 	}

@@ -28,6 +28,13 @@ func NewRecoveryManager(tx *Transaction, txNum int, logManager *log.Manager, buf
 	}
 }
 
+// Start writes a START record to the log marking the beginning of this
+// transaction. It is the boundary that rollback scans back to, and it makes
+// transaction lifetimes explicit in the WAL.
+func (rm *RecoveryManager) Start() (int, error) {
+	return WriteStartToLog(rm.logManager, rm.txNum)
+}
+
 func (rm *RecoveryManager) Commit() error {
 	// flushes all buffers modified by the transaction to disk and writes a commit record to the log
 	if err := rm.bufferManager.FlushAll(rm.txNum); err != nil {

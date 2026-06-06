@@ -13,6 +13,7 @@ import (
 	"github.com/xd-sarthak/miniDB/file"
 	"github.com/xd-sarthak/miniDB/log"
 	"github.com/xd-sarthak/miniDB/transaction"
+	"github.com/xd-sarthak/miniDB/transaction/concurrency"
 )
 
 type TransactionResult struct {
@@ -41,6 +42,10 @@ func TestConcurrency(t *testing.T) {
 
 	assert.NoError(t, err, "Error initializing blocks")
 
+	// A single, shared lock table is what makes the transactions actually
+	// conflict — every transaction must use the same one.
+	lt := concurrency.NewLockTable()
+
 	var wg sync.WaitGroup
 	wg.Add(3) // 3 transactions
 
@@ -50,17 +55,17 @@ func TestConcurrency(t *testing.T) {
 	// Start transactions A, B, and C in separate goroutines
 	go func() {
 		defer wg.Done()
-		result := transactionA(fm, lm, bm)
+		result := transactionA(fm, lm, bm, lt)
 		resultCh <- result
 	}()
 	go func() {
 		defer wg.Done()
-		result := transactionB(fm, lm, bm)
+		result := transactionB(fm, lm, bm, lt)
 		resultCh <- result
 	}()
 	go func() {
 		defer wg.Done()
-		result := transactionC(fm, lm, bm)
+		result := transactionC(fm, lm, bm, lt)
 		resultCh <- result
 	}()
 
@@ -83,7 +88,11 @@ func TestConcurrency(t *testing.T) {
 	assert.False(t, resultA.Aborted, "Transaction A should not have aborted")
 	assert.NoError(t, resultA.Error, "Transaction A should not have error")
 
-	// Transactions B and C, one should have committed, one should have aborted
+	// With a correctly shared lock table, the timed schedule below serializes
+	// cleanly: every read takes a shared lock (shared locks are compatible) and
+	// the writers acquire their exclusive locks only after the readers release,
+	// so no cycle forms and B and C both commit. Any aborts here would have to
+	// be genuine lock-abort timeouts.
 	resultB := results["B"]
 	resultC := results["C"]
 	assert.NotNil(t, resultB, "Transaction B result missing")
@@ -104,20 +113,24 @@ func TestConcurrency(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, 2, numCommitted, "Exactly one of Transaction B or C should have committed")
-	assert.Equal(t, 0, numAborted, "Exactly one of Transaction B or C should have aborted")
+	assert.Equal(t, 2, numCommitted, "Both Transaction B and C should have committed")
+	assert.Equal(t, 0, numAborted, "Neither Transaction B nor C should have aborted")
 }
 
-func transactionA(fm *file.Manager, lm *log.Manager, bm *buffer.Manager) *TransactionResult {
+func transactionA(fm *file.Manager, lm *log.Manager, bm *buffer.Manager, lt *concurrency.LockTable) *TransactionResult {
 	result := &TransactionResult{Name: "A"}
 
-	txA := transaction.NewTransaction(fm, lm, bm)
+	txA, err := transaction.NewTransaction(fm, lm, bm, lt)
+	if err != nil {
+		result.Error = err
+		return result
+	}
 	result.TxNum = txA.TxNum()
 
 	blk1 := file.NewBlockID("testfile", 1)
 	blk2 := file.NewBlockID("testfile", 2)
 
-	err := txA.Pin(blk1)
+	err = txA.Pin(blk1)
 	if err != nil {
 		result.Error = err
 		return result
@@ -148,16 +161,20 @@ func transactionA(fm *file.Manager, lm *log.Manager, bm *buffer.Manager) *Transa
 	return result
 }
 
-func transactionB(fm *file.Manager, lm *log.Manager, bm *buffer.Manager) *TransactionResult {
+func transactionB(fm *file.Manager, lm *log.Manager, bm *buffer.Manager, lt *concurrency.LockTable) *TransactionResult {
 	result := &TransactionResult{Name: "B"}
 
-	txB := transaction.NewTransaction(fm, lm, bm)
+	txB, err := transaction.NewTransaction(fm, lm, bm, lt)
+	if err != nil {
+		result.Error = err
+		return result
+	}
 	result.TxNum = txB.TxNum()
 
 	blk1 := file.NewBlockID("testfile", 1)
 	blk2 := file.NewBlockID("testfile", 2)
 
-	err := txB.Pin(blk1)
+	err = txB.Pin(blk1)
 	if err != nil {
 		result.Error = err
 		return result
@@ -200,16 +217,20 @@ func transactionB(fm *file.Manager, lm *log.Manager, bm *buffer.Manager) *Transa
 	return result
 }
 
-func transactionC(fm *file.Manager, lm *log.Manager, bm *buffer.Manager) *TransactionResult {
+func transactionC(fm *file.Manager, lm *log.Manager, bm *buffer.Manager, lt *concurrency.LockTable) *TransactionResult {
 	result := &TransactionResult{Name: "C"}
 
-	txC := transaction.NewTransaction(fm, lm, bm)
+	txC, err := transaction.NewTransaction(fm, lm, bm, lt)
+	if err != nil {
+		result.Error = err
+		return result
+	}
 	result.TxNum = txC.TxNum()
 
 	blk1 := file.NewBlockID("testfile", 1)
 	blk2 := file.NewBlockID("testfile", 2)
 
-	err := txC.Pin(blk1)
+	err = txC.Pin(blk1)
 	if err != nil {
 		result.Error = err
 		return result
