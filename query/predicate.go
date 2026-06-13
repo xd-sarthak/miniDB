@@ -35,8 +35,8 @@ func NewPredicateFromTerm(term *Term) *Predicate {
 	return &Predicate{terms: []*Term{term}}
 }
 
-// CojoinWith modifies the predicate to be the conjunction of itself and the specified predicate.
-func (p *Predicate) CojoinWith(other *Predicate) {
+// ConjoinWith modifies the predicate to be the conjunction of itself and the specified predicate.
+func (p *Predicate) ConjoinWith(other *Predicate) {
 	p.terms = append(p.terms, other.terms...)
 }
 
@@ -181,6 +181,18 @@ func (p *Predicate) EquatesWithConstant(fieldName string) any {
 		}
 	}
 	return nil
+}
+
+// ComparesWithConstant determines if there is a term of the form "F1>c"
+// where F1 is the specified field and c is some constant.
+// If so, the operator and constant are returned; otherwise (NONE, nil) is returned.
+func (p *Predicate) ComparesWithConstant(fieldName string) (Operator, any) {
+	for _, term := range p.terms {
+		if op, c := term.ComparesWithConstant(fieldName); op != NONE {
+			return op, c
+		}
+	}
+	return NONE, nil
 }
 
 // EquatesWithField determines if there is a term of the form "F1=F2"

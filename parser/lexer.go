@@ -392,13 +392,9 @@ func (l *Lexer) nextToken() error {
 				return nil
 			}
 
-			// check if it's a keyword
-			if _, isKeyword := l.keywords[wordLower]; isKeyword {
-				l.currentToken = Token{Type: TTWord, StringVal: wordLower}
-			} else {
-				// otherwise it's an identifier
-				l.currentToken = Token{Type: TTWord, StringVal: wordVal}
-			}
+			// Treat keywords and identifiers uniformly as lowercase words so
+			// that table/field names are case-insensitive (matching dropdb).
+			l.currentToken = Token{Type: TTWord, StringVal: wordLower}
 			return nil
 	}
 
@@ -514,3 +510,137 @@ func isDelimiter(r rune) bool {
 	}
 	return false
 }
+
+/*
+
+let the query be
+
+SELECT name,age
+FROM student
+WHERE age >= 18 AND active = true
+
+step 0: create lexer
+
+we do lex := NewLexer(sql)
+
+now the state is
+input: "SELECT name,age FROM student WHERE age >= 18 AND active = true"
+position: 0
+currentToken = empty
+
+then l.initKeywords() is called to initialize the keywords map
+
+then we call l.nextToken() to read the first token
+
+
+STEP 1: read first token
+
+so current state is:
+SELECT name, age ...
+^
+position
+
+since no whitespace or EOF skip
+
+now decode rune as r = 's'
+
+operator? no
+string? no
+delimiter? no
+number? no
+letter? yes
+
+so we call scanWord() which consumes SELECT
+
+now position moves:
+SELECT name, age
+      ^
+
+so we store as currentToken = Token{Type: TTWord, StringVal: "select"}
+
+we consume it and move to next token
+
+STEP 2: read next token
+
+repeat same steps and we get currentToken = Token{Type: TTWord, StringVal: "name"}
+
+STEP 3: read next token
+
+we get currentToken = Token{Type: TTDelimiter, Rune: ','}
+
+STEP 4: read next token
+
+we get currentToken = Token{Type: TTWord, StringVal: "age"}
+
+STEP 5: read next token
+
+we get currentToken = Token{Type: TTWord, StringVal: "from"}
+
+and so on until we reach the end of the input and get currentToken = Token{Type: TTEOF}
+
+SELECT
+↓
+WORD(select)
+
+name
+↓
+WORD(name)
+
+,
+↓
+DELIMITER(',')
+
+age
+↓
+WORD(age)
+
+FROM
+↓
+WORD(from)
+
+student
+↓
+WORD(student)
+
+WHERE
+↓
+WORD(where)
+
+age
+↓
+WORD(age)
+
+>=
+↓
+OPERATOR(">=")
+
+20
+↓
+NUMBER(20)
+
+AND
+↓
+WORD(and)
+
+active
+↓
+WORD(active)
+
+=
+↓
+OPERATOR("=")
+
+true
+↓
+BOOLEAN(true)
+
+EOF
+↓
+TTEOF
+
+
+
+
+
+
+*/

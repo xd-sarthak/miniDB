@@ -48,6 +48,12 @@ func (t *Term) IsSatisfied(inputScan scan.Scan) bool {
 
 // compareSupportedTypes handles comparison for supported types.
 func compareSupportedTypes(lhs, rhs any, op Operator) bool {
+	return CompareSupportedTypes(lhs, rhs, op)
+}
+
+// CompareSupportedTypes handles comparison for supported types. It is the
+// exported entry point used by other packages (btree, functions, etc.).
+func CompareSupportedTypes(lhs, rhs any, op Operator) bool {
 	// Handle nil values explicitly
 	if lhs == nil || rhs == nil {
 		return false // Null comparisons always return false in SQL semantics
@@ -271,6 +277,21 @@ func (t *Term) EquatesWithConstant(fieldName string) any {
 	return nil
 }
 
+
+// ComparesWithConstant determines if this term is of the form "F1 < 100"
+// where F1 is the specified field and the other side is a constant.
+// If so, it returns (operator, constant); otherwise (NONE, nil).
+func (t *Term) ComparesWithConstant(fieldName string) (Operator, any) {
+	// LHS is the field, RHS is a constant
+	if t.lhs.IsFieldName() && t.lhs.asFieldName() == fieldName && !t.rhs.IsFieldName() {
+		return t.op, t.rhs.asConstant()
+	}
+	// RHS is the field, LHS is a constant
+	if t.rhs.IsFieldName() && t.rhs.asFieldName() == fieldName && !t.lhs.IsFieldName() {
+		return t.op, t.lhs.asConstant()
+	}
+	return NONE, nil
+}
 
 // EquatesWithField determines if this term is of the form "F1=F2"
 // where F1 is the specified field and F2 is another field.
