@@ -1,8 +1,8 @@
 package functions
 
 import (
-	"github.com/xd-sarthak/miniDB/query"
 	"github.com/xd-sarthak/miniDB/scan"
+	"github.com/xd-sarthak/miniDB/utils"
 )
 
 var _ AggregationFunction = &MinFunction{}
@@ -39,7 +39,7 @@ func (f *MinFunction) ProcessNext(s scan.Scan) error {
 		return err
 	}
 
-	if query.CompareSupportedTypes(newVal, f.value, query.LT) {
+	if utils.CompareSupportedTypes(newVal, f.value, utils.LT) {
 		f.value = newVal
 	}
 	return nil
