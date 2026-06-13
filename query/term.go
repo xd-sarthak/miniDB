@@ -4,11 +4,10 @@ package query
 // term.go will use the expression to evaluate the condition and return true or false
 
 import (
-	"fmt"
-	"time"
+	"github.com/xd-sarthak/miniDB/plan"
 	"github.com/xd-sarthak/miniDB/records"
 	"github.com/xd-sarthak/miniDB/scan"
-	"github.com/xd-sarthak/miniDB/plan"
+	"github.com/xd-sarthak/miniDB/utils"
 )
 
 type Term struct {
@@ -51,145 +50,12 @@ func compareSupportedTypes(lhs, rhs any, op Operator) bool {
 	return CompareSupportedTypes(lhs, rhs, op)
 }
 
-// CompareSupportedTypes handles comparison for supported types. It is the
-// exported entry point used by other packages (btree, functions, etc.).
+// CompareSupportedTypes handles comparison for supported types for all
+// operators (EQ/NE/LT/LE/GT/GE). It delegates to the shared implementation in
+// the utils package so the logic lives in exactly one place and is available to
+// other packages (btree, functions, etc.) without an import cycle.
 func CompareSupportedTypes(lhs, rhs any, op Operator) bool {
-	// Handle nil values explicitly
-	if lhs == nil || rhs == nil {
-		return false // Null comparisons always return false in SQL semantics
-	}
-
-	// Type-specific comparisons
-	switch lhs := lhs.(type) {
-	case int:
-		if rhs, ok := rhs.(int); ok {
-			return compareInts(lhs, rhs, op)
-		}
-	case int64:
-		if rhs, ok := rhs.(int64); ok {
-			return compareInt64s(lhs, rhs, op)
-		}
-	case int16:
-		if rhs, ok := rhs.(int16); ok {
-			return compareInt16s(lhs, rhs, op)
-		}
-	case string:
-		if rhs, ok := rhs.(string); ok {
-			return compareStrings(lhs, rhs, op)
-		}
-	case bool:
-		if rhs, ok := rhs.(bool); ok {
-			return compareBools(lhs, rhs, op)
-		}
-	case time.Time:
-		if rhs, ok := rhs.(time.Time); ok {
-			return compareTimes(lhs, rhs, op)
-		}
-	default:
-		// Log unsupported type for debugging
-		fmt.Printf("Unsupported type for comparison: lhs=%T, rhs=%T\n", lhs, rhs)
-	}
-
-	// Return false for unsupported or mismatched types
-	return false
-}
-
-// compareInts compares two integers.
-func compareInts(lhs, rhs int, op Operator) bool {
-	switch op {
-	case LT:
-		return lhs < rhs
-	case LE:
-		return lhs <= rhs
-	case GT:
-		return lhs > rhs
-	case GE:
-		return lhs >= rhs
-	default:
-		fmt.Printf("unsupported operator: %v\n", op)
-		return false
-	}
-}
-
-// compareInt64s compares two int64 values.
-func compareInt64s(lhs, rhs int64, op Operator) bool {
-	switch op {
-	case LT:
-		return lhs < rhs
-	case LE:
-		return lhs <= rhs
-	case GT:
-		return lhs > rhs
-	case GE:
-		return lhs >= rhs
-	default:
-		fmt.Printf("unsupported operator: %v\n", op)
-		return false
-	}
-}
-
-// compareInt16s compares two int16 values.
-func compareInt16s(lhs, rhs int16, op Operator) bool {
-	switch op {
-	case LT:
-		return lhs < rhs
-	case LE:
-		return lhs <= rhs
-	case GT:
-		return lhs > rhs
-	case GE:
-		return lhs >= rhs
-	default:
-		fmt.Printf("unsupported operator: %v\n", op)
-		return false
-	}
-}
-
-// compareStrings compares two strings.
-func compareStrings(lhs, rhs string, op Operator) bool {
-	switch op {
-	case LT:
-		return lhs < rhs
-	case LE:
-		return lhs <= rhs
-	case GT:
-		return lhs > rhs
-	case GE:
-		return lhs >= rhs
-	default:
-		fmt.Printf("unsupported operator: %v\n", op)
-		return false
-	}
-}
-
-// compareBools compares two booleans (only equality comparisons make sense).
-func compareBools(lhs, rhs bool, op Operator) bool {
-	switch op {
-	case EQ:
-		return lhs == rhs
-	case NE:
-		return lhs != rhs
-	default:
-		fmt.Printf("unsupported operator: %v\n", op)
-		return false // Invalid for comparison operators like <, >
-	}
-}
-
-// compareTimes compares two time.Time values.
-func compareTimes(lhs, rhs time.Time, op Operator) bool {
-	switch op {
-	case LT:
-		return lhs.Before(rhs)
-	case LE:
-		return lhs.Before(rhs) || lhs.Equal(rhs)
-	case GT:
-		return lhs.After(rhs)
-	case GE:
-		return lhs.After(rhs) || lhs.Equal(rhs)
-	default:
-		fmt.Printf("unsupported operator: %v\n", op)
-		return false
-	}
+	return utils.CompareSupportedTypes(lhs, rhs, utils.Operator(op))
 }
 
 // Query Optimizer
@@ -251,12 +117,17 @@ func reductionForConstantComparison(distinctValues int, op Operator) int {
 		return max(1, distinctValues)
 	case NE:
 		// Assumes non-equality doesn't significantly reduce distinct values.
-		return distinctValues
+		if distinctValues <= 1 {
+			return 1
+		}
+		// approximate: the portion we keep is (distinctValues-1)/distinctValues,
+		// so the factor = distinctValues/(distinctValues-1)
+		return distinctValues / (distinctValues - 1)
 	case LT, LE, GT, GE:
-		// Assume uniform distribution; halve the distinct values for range operators.
-		return max(1, distinctValues/2)
+		// Assume uniform distribution; range operators keep roughly half the rows.
+		return 2
 	default:
-		return distinctValues // Default for unsupported operators
+		return 1 // Default for unsupported operators, assume no reduction.
 	}
 }
 
