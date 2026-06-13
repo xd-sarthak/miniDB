@@ -5,8 +5,9 @@ import (
 	"github.com/xd-sarthak/miniDB/buffer"
 	"github.com/xd-sarthak/miniDB/file"
 	"github.com/xd-sarthak/miniDB/log"
-	"github.com/xd-sarthak/miniDB/transaction"
 	"github.com/xd-sarthak/miniDB/metadata"
+	"github.com/xd-sarthak/miniDB/plan_impl"
+	"github.com/xd-sarthak/miniDB/transaction"
 	"github.com/xd-sarthak/miniDB/transaction/concurrency"
 )
 
@@ -27,6 +28,9 @@ type MiniDB struct {
 	logManager *log.Manager
 	mdManager *metadata.Manager
 	lockTable *concurrency.LockTable
+	queryPlanner plan_impl.QueryPlanner
+	updatePlanner plan_impl.UpdatePlanner
+	planner *plan_impl.Planner
 }
 
 // NewMiniDBWithOptions creates a new instance of MiniDB with the specified options.
@@ -73,7 +77,10 @@ func NewMiniDB(dbDirectory string) (*MiniDB, error) {
 		return nil, fmt.Errorf("failed to initialize metadata manager: %v", err)
 	}
 
-	// TODO: QueryPlanner, UpdatePlanner, etc.
+	db.queryPlanner = plan_impl.NewBasicQueryPlanner(db.mdManager)
+	db.updatePlanner = plan_impl.NewBasicUpdatePlanner(db.mdManager)
+	db.planner = plan_impl.NewPlanner(db.queryPlanner, db.updatePlanner)
+
 	err = tx.Commit()
 	if err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %v", err)
@@ -100,6 +107,10 @@ func (db *MiniDB) NewTx() (*transaction.Transaction, error) {
 
 func (db *MiniDB) MetadataManager() *metadata.Manager {
 	return db.mdManager
+}
+
+func (db *MiniDB) Planner() *plan_impl.Planner {
+	return db.planner
 }
 
 func (db *MiniDB) FileManager() *file.Manager {
