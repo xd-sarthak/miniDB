@@ -9,11 +9,21 @@ The database implements the following features:
 - [x] Record Management
 - [x] Metadata Management
 - [x] Query Processing
-- [ ] Query Parsing
-- [ ] Parsing
-- [ ] Planning
-- [ ] JDBC Interfaces
-- [ ] Indexing
-- [ ] Materialization and Sorting
-- [ ] Effective Buffer Utilization
-- [ ] Query Optimization
+- [x] Query Parsing
+- [x] Parsing
+- [x] Planning
+- [x] JDBC Interfaces
+- [x] Indexing
+- [x] Materialization and Sorting
+- [x] Effective Buffer Utilization
+- [x] Query Optimization
+
+## Usage
+
+miniDB ships a `database/sql` driver (registered as `minidb`). See
+[`example.go`](./example.go) for an end-to-end demo (`go run ./example.go`),
+which creates a table, demonstrates commit/rollback, and runs an `ORDER BY`
+query. SQL supported includes `CREATE TABLE/VIEW/INDEX`, `INSERT`, `UPDATE`,
+`DELETE`, and `SELECT` with `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, and the
+`min`/`max`/`count`/`avg`/`sum` aggregates. The planner uses table statistics
+and available indexes (hash and B-tree) for query optimization.
