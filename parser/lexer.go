@@ -369,8 +369,11 @@ func (l *Lexer) nextToken() error {
 			tokenStr := l.input[start:l.position]
 			if t,err := parseDate(tokenStr); err == nil {
 				l.currentToken = Token{Type: TTDate, TimeVal: t}
+				return nil
 			} else {
-				// fallback to number if date parsing fails
+				// fallback to number if date parsing fails; strip any
+				// trailing/embedded whitespace consumed by the date scan.
+				tokenStr = strings.ReplaceAll(tokenStr, " ", "")
 				if num, err := strconv.Atoi(tokenStr); err == nil {
 					l.currentToken = Token{Type: TTNumber, NumVal: num}
 					return nil

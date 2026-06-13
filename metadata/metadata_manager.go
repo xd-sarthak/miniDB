@@ -26,7 +26,10 @@ func NewManager(isNew bool, transaction *transaction.Transaction) (*Manager, err
 	if m.viewManager, err = NewViewManager(isNew, m.tableManager, transaction); err != nil {
 		return nil, fmt.Errorf("view manager: %w", err)
 	}
-	if m.statManager, err = NewStatMgr(m.tableManager, transaction, 100); err != nil {
+	// refreshLimit of 0 means statistics are recalculated on every request, so
+	// query plans always see fresh stats (matching dropdb's behavior). A higher
+	// value trades freshness for fewer full-table rescans.
+	if m.statManager, err = NewStatMgr(m.tableManager, transaction, 0); err != nil {
 		return nil, fmt.Errorf("stat manager: %w", err)
 	}
 	if m.indexManager, err = NewIndexManager(isNew, m.tableManager, m.statManager, transaction); err != nil {
