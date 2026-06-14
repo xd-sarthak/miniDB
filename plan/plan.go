@@ -12,7 +12,7 @@ import (
 type Plan interface {
 	// Open opens a scan corresponding to this plan.
 	// The scan will be positioned before its first record.
-	Open() *scan.Scan
+	Open() (scan.Scan, error)
 
 	// BlocksAccessed returns an estimate of the number of
 	// block accesses that will occur when the scan is read to completion.
