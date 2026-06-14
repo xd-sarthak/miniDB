@@ -2,15 +2,6 @@
 
 A small but fully featured relational database engine, written from scratch in Go.
 
-miniDB is a SimpleDB-style ([Sciore](http://www.cs.bc.edu/~sciore/simpledb/)) teaching
-database, built as a hands-on exercise in working through database internals — from raw
-block I/O on disk all the way up to a SQL parser, cost-based query planner, and a
-`database/sql` driver. It is a **layered storage engine**: each layer knows only about
-the layer directly beneath it, with no import cycles.
-
-> ⚠️ miniDB is an educational project, not a production database. It is single-process and
-> embedded — you link it into your program rather than connecting to a server.
-
 ## Features
 
 - **Disk & file management** — fixed-size block I/O over OS files.
