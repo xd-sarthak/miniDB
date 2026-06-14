@@ -107,9 +107,7 @@ func (p *Parser) constant() (any, error) {
 
 func (p *Parser) expression() (*query.Expression, error) {
 	// Check for an aggregate function first (e.g. max(salary)).
-	if p.lex.MatchKeyword("max") || p.lex.MatchKeyword("min") ||
-		p.lex.MatchKeyword("count") || p.lex.MatchKeyword("avg") ||
-		p.lex.MatchKeyword("sum") {
+	if p.matchAggregate() {
 		agg, err := p.parseAggregate()
 		if err != nil {
 			return nil, err
@@ -269,15 +267,39 @@ func (p *Parser) Query() (*QueryData, error) {
 	}, nil
 }
 
+// matchAggregate reports whether the current token begins an aggregate
+// function call: an aggregate keyword (max/min/count/avg/sum) immediately
+// followed by '('. The lookahead lets an identifier that happens to share a
+// name with an aggregate (e.g. a column called "count") be parsed as a field.
+func (p *Parser) matchAggregate() bool {
+	if !(p.lex.MatchKeyword("max") || p.lex.MatchKeyword("min") ||
+		p.lex.MatchKeyword("count") || p.lex.MatchKeyword("avg") ||
+		p.lex.MatchKeyword("sum")) {
+		return false
+	}
+
+	// Look ahead one token without consuming it: require a '(' to treat this
+	// as an aggregate call rather than a plain field reference.
+	savedPos := p.lex.position
+	savedTok := p.lex.currentToken
+	defer func() {
+		p.lex.position = savedPos
+		p.lex.currentToken = savedTok
+	}()
+
+	if err := p.lex.nextToken(); err != nil {
+		return false
+	}
+	return p.lex.MatchDelimiter('(')
+}
+
 func (p *Parser) selectList() ([]string, []functions.AggregationFunction, error) {
 	var fields []string
 	var aggregates []functions.AggregationFunction
 
 	for {
 		// Check for aggregate function
-		if p.lex.MatchKeyword("max") || p.lex.MatchKeyword("min") ||
-			p.lex.MatchKeyword("count") || p.lex.MatchKeyword("avg") ||
-			p.lex.MatchKeyword("sum") {
+		if p.matchAggregate() {
 			agg, err := p.parseAggregate()
 			if err != nil {
 				return nil, nil, err
@@ -369,9 +391,7 @@ func (p *Parser) parseOrderBy() ([]OrderByItem, error) {
 		var err error
 
 		// Check for aggregate function
-		if p.lex.MatchKeyword("max") || p.lex.MatchKeyword("min") ||
-			p.lex.MatchKeyword("count") || p.lex.MatchKeyword("avg") ||
-			p.lex.MatchKeyword("sum") {
+		if p.matchAggregate() {
 			agg, err := p.parseAggregate()
 			if err != nil {
 				return nil, err

@@ -40,26 +40,39 @@ func setupIndexJoinPlanTest(t *testing.T) *indexJoinPlanTestSetup {
 	bm := buffer.NewManager(fm, lm, 10)
 	transaction, _ := transaction.NewTransaction(fm, lm, bm, concurrency.NewLockTable())
 
-	// Create employee schema and layout
-	empSchema := records.NewSchema()
-	empSchema.AddIntField("emp_id")
-	empSchema.AddStringField("name", 20)
-	empSchema.AddIntField("dept_id") // Join field
-	empLayout := records.NewLayout(empSchema)
-
-	// Create department schema and layout
+	// Department schema is needed to describe the indexed field to IndexInfo.
 	deptSchema := records.NewSchema()
 	deptSchema.AddIntField("dept_id") // Join field
 	deptSchema.AddStringField("dept_name", 20)
 	deptSchema.AddIntField("budget")
-	deptLayout := records.NewLayout(deptSchema)
 
-	// Create index schema and layout
+	// Create index schema and layout (the index uses one consistent layout for
+	// both writes and reads).
 	idxSchema := records.NewSchema()
 	idxSchema.AddIntField(index.Blockfield)
 	idxSchema.AddIntField(index.IDField)
 	idxSchema.AddIntField(index.DataValueField)
 	idxLayout := records.NewLayout(idxSchema)
+
+	// Register the tables in the catalog FIRST, then read the layout back from
+	// the catalog and use it to write the data. Writing and reading through the
+	// same catalog layout is what the real database does; building a separate
+	// layout could assign different field offsets and corrupt reads.
+	empMetadata := createTableMetadataWithSchema(t, transaction, "employee", map[string]interface{}{
+		"emp_id":  0,
+		"name":    "string",
+		"dept_id": 0,
+	})
+	deptMetadata := createTableMetadataWithSchema(t, transaction, "department", map[string]interface{}{
+		"dept_id":   0,
+		"dept_name": "string",
+		"budget":    0,
+	})
+
+	empLayout, err := empMetadata.GetLayout("employee", transaction)
+	require.NoError(t, err)
+	deptLayout, err := deptMetadata.GetLayout("department", transaction)
+	require.NoError(t, err)
 
 	// Create table scans
 	empScan, err := tablescan.NewTableScan(transaction, "employee", empLayout)
@@ -111,19 +124,6 @@ func setupIndexJoinPlanTest(t *testing.T) *indexJoinPlanTestSetup {
 		require.NoError(t, empScan.SetString("name", e.name))
 		require.NoError(t, empScan.SetInt("dept_id", e.deptID))
 	}
-
-	// Create metadata managers
-	empMetadata := createTableMetadataWithSchema(t, transaction, "employee", map[string]interface{}{
-		"emp_id":  0,
-		"name":    "string",
-		"dept_id": 0,
-	})
-
-	deptMetadata := createTableMetadataWithSchema(t, transaction, "department", map[string]interface{}{
-		"dept_id":   0,
-		"dept_name": "string",
-		"budget":    0,
-	})
 
 	// Create StatInfo and IndexInfo
 	statInfo := metadata.NewStatInfo(3, 3, map[string]int{
