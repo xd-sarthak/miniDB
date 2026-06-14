@@ -1,8 +1,12 @@
 package query
 
+import "fmt"
+
 type Operator int
 
 const (
+	// NONE represents the absence of an operator.
+	NONE Operator = -1
 	// EQ represents the equality operator (==).
 	EQ Operator = iota
 	// NE represents the inequality operator (!=).
@@ -33,5 +37,25 @@ func (op Operator) String() string {
 		return ">="
 	default:
 		return "unknown operator"
+	}
+}
+
+// OperatorFromString returns the Operator from the given string.
+func OperatorFromString(op string) (Operator, error) {
+	switch op {
+	case "=", "==":
+		return EQ, nil
+	case "<>", "!=":
+		return NE, nil
+	case "<":
+		return LT, nil
+	case "<=":
+		return LE, nil
+	case ">":
+		return GT, nil
+	case ">=":
+		return GE, nil
+	default:
+		return NONE, fmt.Errorf("invalid operator: %s", op)
 	}
 }
