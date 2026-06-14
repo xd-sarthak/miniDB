@@ -27,3 +27,25 @@ query. SQL supported includes `CREATE TABLE/VIEW/INDEX`, `INSERT`, `UPDATE`,
 `DELETE`, and `SELECT` with `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, and the
 `min`/`max`/`count`/`avg`/`sum` aggregates. The planner uses table statistics
 and available indexes (hash and B-tree) for query optimization.
+
+### Interactive shell
+
+For an interactive session, run the REPL:
+
+```sh
+go run ./cmd/repl [db-directory]   # defaults to ./minidb-data
+```
+
+Type SQL statements terminated by `;` (they may span multiple lines). Dot
+commands control the session:
+
+| Command | Description |
+| --- | --- |
+| `.help` | list commands |
+| `.begin` | start an explicit transaction |
+| `.commit` | commit the current transaction |
+| `.rollback` | roll back the current transaction |
+| `.exit` / `.quit` | leave the shell (rolls back any open transaction) |
+
+`SELECT` statements print a result table; other statements report rows
+affected. When a transaction is open the prompt shows `minidb*>`.
