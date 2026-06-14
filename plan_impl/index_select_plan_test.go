@@ -23,6 +23,7 @@ type indexPlanTestSetup struct {
 	tableScan   *tablescan.TableScan
 	idx         index.Index
 	indexInfo   *metadata.IndexInfo
+	mdm         *metadata.Manager
 	cleanup     func()
 }
 
@@ -37,12 +38,11 @@ func setupIndexPlanTest(t *testing.T) *indexPlanTestSetup {
 	bm := buffer.NewManager(fm, lm, 10)
 	transaction, _ := transaction.NewTransaction(fm, lm, bm, concurrency.NewLockTable())
 
-	// Create table schema and layout
+	// Table schema is needed to describe the indexed field to IndexInfo.
 	tblSchema := records.NewSchema()
 	tblSchema.AddIntField("id")
 	tblSchema.AddStringField("name", 20)
 	tblSchema.AddIntField("val")
-	tblLayout := records.NewLayout(tblSchema)
 
 	// Create index schema and layout
 	idxSchema := records.NewSchema()
@@ -50,6 +50,17 @@ func setupIndexPlanTest(t *testing.T) *indexPlanTestSetup {
 	idxSchema.AddIntField(index.IDField)
 	idxSchema.AddIntField(index.DataValueField)
 	idxLayout := records.NewLayout(idxSchema)
+
+	// Register the table in the catalog FIRST, then write data using the
+	// catalog's layout so reads (which also use the catalog layout) see the
+	// same field offsets. Building a separate layout could disagree on offsets.
+	mdm := createTableMetadataWithSchema(t, transaction, "test_table", map[string]interface{}{
+		"id":   0,
+		"name": "string",
+		"val":  0,
+	})
+	tblLayout, err := mdm.GetLayout("test_table", transaction)
+	require.NoError(t, err)
 
 	// Create table scan
 	ts, err := tablescan.NewTableScan(transaction, "test_table", tblLayout)
@@ -111,6 +122,7 @@ func setupIndexPlanTest(t *testing.T) *indexPlanTestSetup {
 		tableScan:   ts,
 		idx:         idx,
 		indexInfo:   indexInfo,
+		mdm:         mdm,
 		cleanup:     cleanup,
 	}
 }
@@ -120,11 +132,7 @@ func TestIndexSelectPlan_Basic(t *testing.T) {
 	setup := setupIndexPlanTest(t)
 	defer setup.cleanup()
 
-	mdm := createTableMetadataWithSchema(t, setup.transaction, "test_table", map[string]interface{}{
-		"id":   0,
-		"name": "string",
-		"val":  0,
-	})
+	mdm := setup.mdm
 
 	tp, err := NewTablePlan(setup.transaction, "test_table", mdm)
 	require.NoError(t, err)
@@ -170,11 +178,7 @@ func TestIndexSelectPlan_NoMatches(t *testing.T) {
 	setup := setupIndexPlanTest(t)
 	defer setup.cleanup()
 
-	mdm := createTableMetadataWithSchema(t, setup.transaction, "test_table", map[string]interface{}{
-		"id":   0,
-		"name": "string",
-		"val":  0,
-	})
+	mdm := setup.mdm
 
 	tp, err := NewTablePlan(setup.transaction, "test_table", mdm)
 	require.NoError(t, err)
@@ -195,11 +199,7 @@ func TestIndexSelectPlan_SingleMatch(t *testing.T) {
 	setup := setupIndexPlanTest(t)
 	defer setup.cleanup()
 
-	mdm := createTableMetadataWithSchema(t, setup.transaction, "test_table", map[string]interface{}{
-		"id":   0,
-		"name": "string",
-		"val":  0,
-	})
+	mdm := setup.mdm
 
 	tp, err := NewTablePlan(setup.transaction, "test_table", mdm)
 	require.NoError(t, err)
